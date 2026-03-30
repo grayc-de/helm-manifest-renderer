@@ -1,0 +1,20 @@
+sourceType: oci
+releaseName: envoy-gateway
+namespace: ipen-infrastructure
+
+source:
+  oci:
+    registry: docker.io
+    path: envoyproxy
+    name: gateway-helm
+    version: 1.6.5
+
+helmArgs: []
+
+postRender:
+  deleteYamlPaths:
+    - metadata.labels."app.kubernetes.io/name"
+  excludePaths:
+    - certgen-rbac.yaml
+    - certgen.yaml
+  normalizeMetadata: true

@@ -1,0 +1,20 @@
+sourceType: helm
+releaseName: kube-prometheus-stack
+namespace: observability
+
+source:
+  helm:
+    repoUrl: https://prometheus-community.github.io/helm-charts
+    name: kube-prometheus-stack
+    version: 82.9.0
+    repoName: prometheus
+
+helmArgs: []
+
+postRender:
+  deleteYamlPaths:
+    - metadata.annotations."controller-gen.kubebuilder.io/version"
+  excludePaths:
+    - grafana/dashboards-1.14/nodes-darwin.yaml
+    - grafana/dashboards-1.14/nodes-aix.yaml
+  normalizeMetadata: true

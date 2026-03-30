@@ -1,0 +1,22 @@
+# https://github.com/kubernetes-sigs/metrics-server/blob/master/charts/metrics-server/values.yaml
+
+args:
+  - --kubelet-insecure-tls
+  - --logging-format=json
+
+apiService:
+  insecureSkipTLSVerify: true
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    memory: 128Mi
+
+tmpVolume:
+  emptyDir:
+    sizeLimit: 100Mi
+
+metrics:
+  enabled: true

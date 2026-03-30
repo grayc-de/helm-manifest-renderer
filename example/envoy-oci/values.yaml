@@ -1,0 +1,66 @@
+global:
+  imageRegistry: mirroripenacr.azurecr.io/docker.io
+
+config:
+  envoyGateway:
+    extensionApis:
+      enableBackend: true
+      enableEnvoyPatchPolicy: true
+
+deployment:
+  replicas: 3
+  envoyGateway:
+    securityContext:
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop:
+          - ALL
+      privileged: false
+      readOnlyRootFilesystem: true
+      runAsGroup: 65532
+      runAsNonRoot: true
+      runAsUser: 65532
+      seccompProfile:
+        type: RuntimeDefault
+  pod:
+    labels:
+      ipen.eon.com/envoy-gateway: controller
+
+    affinity:
+      # Ensure up to one operator per node
+      podAntiAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          - matchLabelKeys:
+              - pod-template-hash
+            labelSelector:
+              matchExpressions:
+                - key: ipen.eon.com/envoy-gateway
+                  operator: In
+                  values:
+                    - controller
+            topologyKey: kubernetes.io/hostname
+
+      # Push operator pods to system nodes
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+            - matchExpressions:
+                - key: kubernetes.azure.com/mode
+                  operator: In
+                  values:
+                    - system
+
+    tolerations:
+      - effect: NoSchedule
+        key: CriticalAddonsOnly
+        operator: Equal
+        value: "true"
+
+certgen:
+  job:
+    resources:
+      limits:
+        memory: 128Mi
+      requests:
+        cpu: 100m
+        memory: 128Mi

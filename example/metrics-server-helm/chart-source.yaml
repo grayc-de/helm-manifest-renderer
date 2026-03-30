@@ -1,0 +1,17 @@
+sourceType: helm
+releaseName: metrics-server
+namespace: kube-system
+
+source:
+  helm:
+    repoUrl: https://kubernetes-sigs.github.io/metrics-server
+    name: metrics-server
+    version: 3.13.0
+    repoName: metrics-server
+
+helmArgs: []
+
+postRender:
+  deleteYamlPaths: []
+  excludePaths: []
+  normalizeMetadata: true

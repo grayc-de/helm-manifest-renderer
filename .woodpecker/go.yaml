@@ -23,4 +23,8 @@ steps:
   build:
     image: golang:1.26
     commands:
+      - pwd
+      - ls -la
+      - find . -maxdepth 2 -type d | sort
+      - git rev-parse HEAD
       - make build

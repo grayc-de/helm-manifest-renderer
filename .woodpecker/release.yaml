@@ -26,7 +26,7 @@ steps:
     depends_on: [build]
     settings:
       platform: linux/amd64
-      name: git.grayc.dev/grayc-devops/helm-manifest-renderer:${CI_COMMIT_TAG}
+      name: "git.grayc.dev/grayc-devops/helm-manifest-renderer:${CI_COMMIT_TAG}"
       auth:
         git.grayc.dev:
           username: {from_secret: CONTAINER_REGISTRY_USERNAME}

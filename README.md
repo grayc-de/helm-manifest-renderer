@@ -27,6 +27,7 @@ Depending on the chart source, you may also need:
 - network access and authentication for OCI registries
 
 For containerized or CI execution, the image must also provide `helm` in `PATH`.
+The provided container image runs as a non-root user by default.
 
 ## Build
 
@@ -38,6 +39,35 @@ This produces the binary:
 
 ```bash
 ./helm-manifest-renderer
+```
+
+## CI And Releases
+
+The repository is structured around three pipeline paths:
+
+- pull requests run formatting, vetting, tests, and a build
+- pushes to `main` build and publish the container image as `:latest`
+- version tags such as `v0.1.0` create a release with a packaged binary and
+  build the container image with the same version tag
+
+The release artifact currently includes a Linux `amd64` tarball and a checksum
+file.
+
+## Container Usage
+
+Build the image locally:
+
+```bash
+docker build -t helm-manifest-renderer:dev .
+```
+
+Run it against a mounted workload directory:
+
+```bash
+docker run --rm \
+  -v "$PWD/example/metrics-server-helm:/work" \
+  -w /work \
+  helm-manifest-renderer:dev
 ```
 
 ## Run

@@ -1,0 +1,26 @@
+when:
+  event:
+    - pull_request
+    - push
+    - manual
+
+steps:
+  fmt:
+    image: golang:1.26
+    commands:
+      - make fmt-check
+
+  vet:
+    image: golang:1.26
+    commands:
+      - make vet
+
+  test:
+    image: golang:1.26
+    commands:
+      - make test
+
+  build:
+    image: golang:1.26
+    commands:
+      - make build

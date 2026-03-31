@@ -1,0 +1,33 @@
+when:
+  event: tag
+  ref: refs/tags/v*
+
+steps:
+  build:
+    image: golang:1.26
+    commands:
+      - make release-linux-amd64 VERSION=${CI_COMMIT_TAG}
+
+  release:
+    image: git.grayc.dev/grayc-devops/woodpecker-simple-release:v0.1.4
+    depends_on: [build]
+    settings:
+      forge_url: https://git.grayc.dev
+      gitea_token: {from_secret: GITEA_TOKEN}
+      release_docu: .woodpecker/release.md
+      release_files:
+        - file: dist/helm-manifest-renderer_${CI_COMMIT_TAG}_linux_amd64.tar.gz
+          type: application/gzip
+        - file: dist/helm-manifest-renderer_${CI_COMMIT_TAG}_checksums.txt
+          type: text/plain
+
+  image:
+    image: kokuwaio/buildctl:v0.28.0
+    depends_on: [build]
+    settings:
+      platform: linux/amd64
+      name: git.grayc.dev/grayc-devops/helm-manifest-renderer:${CI_COMMIT_TAG}
+      auth:
+        git.grayc.dev:
+          username: {from_secret: CONTAINER_REGISTRY_USERNAME}
+          password: {from_secret: CONTAINER_REGISTRY_PASSWORD}

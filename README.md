@@ -1,6 +1,7 @@
 # helm-manifest-renderer
 
-`helm-manifest-renderer` renders a Helm chart into a deterministic manifest directory using `helm template`.
+`helm-manifest-renderer` renders a Helm chart into a deterministic manifest
+directory using `helm template`.
 
 ## What It Does
 
@@ -297,7 +298,8 @@ postRender:
 
 - optional boolean
 - defaults to `true`
-- removes common noisy metadata and applies targeted cleanup for CRDs and selected multi-line expressions
+- removes common noisy metadata and applies targeted cleanup for CRDs and
+  selected multi-line expressions
 
 ### Supported Source Types
 

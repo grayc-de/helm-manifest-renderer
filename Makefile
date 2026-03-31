@@ -9,7 +9,7 @@ all: fmt vet test build
 
 build:
 	@echo "Building $(BINARY_NAME)..."
-	go build -o $(BINARY_NAME) ./cmd/helm-manifest-renderer
+	go build -o $(BINARY_NAME) ./cmd/...
 
 test:
 	@echo "Running tests..."
@@ -40,7 +40,7 @@ run: build
 release-linux-amd64:
 	@echo "Building release artifact for linux/amd64 ($(VERSION))..."
 	@mkdir -p $(DIST_DIR)
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o $(DIST_DIR)/$(BINARY_NAME) ./cmd/helm-manifest-renderer
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o $(DIST_DIR)/$(BINARY_NAME) ./cmd/...
 	tar -C $(DIST_DIR) -czf $(DIST_DIR)/$(BINARY_NAME)_$(VERSION)_linux_amd64.tar.gz $(BINARY_NAME)
 	sha256sum $(DIST_DIR)/$(BINARY_NAME)_$(VERSION)_linux_amd64.tar.gz > $(DIST_DIR)/$(BINARY_NAME)_$(VERSION)_checksums.txt
 	rm -f $(DIST_DIR)/$(BINARY_NAME)

@@ -6,6 +6,7 @@ when:
   path:
     - .woodpecker/lint.yaml
     - .markdownlint.yaml
+    - .yamllint.yaml
     - Dockerfile
     - "**/*.yaml"
     - "**/*.md"
@@ -17,6 +18,7 @@ steps:
     when:
       path:
         - .woodpecker/lint.yaml
+        - .yamllint.yaml
         - "**/*.yaml"
 
   markdown:

@@ -12,6 +12,7 @@ FROM debian:bookworm-slim
 
 ARG HELM_VERSION=v3.19.0
 
+# hadolint ignore=DL3008
 RUN apt-get update \
   && apt-get install -y --no-install-recommends ca-certificates curl tar \
   && mkdir -p /work \

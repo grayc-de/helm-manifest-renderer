@@ -1,4 +1,4 @@
-helm-manifest-renderer
+/helm-manifest-renderer
 tmp/
 generated-manifests/
 dist/

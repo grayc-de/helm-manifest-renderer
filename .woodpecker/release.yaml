@@ -7,6 +7,25 @@ steps:
     image: golang:1.26
     commands:
       - make release-linux-amd64 VERSION=${CI_COMMIT_TAG}
+      - |
+        PREV_TAG="$(git describe --tags --abbrev=0 "${CI_COMMIT_TAG}^" 2>/dev/null || true)"
+        if [ -n "$PREV_TAG" ]; then
+          git log --first-parent --pretty='- %s' "${PREV_TAG}..${CI_COMMIT_TAG}" > dist/changelog.txt
+        else
+          git log --first-parent --pretty='- %s' HEAD > dist/changelog.txt
+        fi
+      - |
+        awk -v version="${CI_COMMIT_TAG}" '
+          FNR == NR { changelog = changelog $0 "\n"; next }
+          {
+            gsub(/\{\{VERSION\}\}/, version)
+            if ($0 == "{{CHANGELOG}}") {
+              printf "%s", changelog
+            } else {
+              print
+            }
+          }
+        ' dist/changelog.txt .woodpecker/release.md > dist/release.md
 
   release:
     image: git.grayc.dev/grayc-devops/woodpecker-simple-release:v0.1.4
@@ -14,7 +33,7 @@ steps:
     settings:
       forge_url: https://git.grayc.dev
       gitea_token: {from_secret: GITEA_TOKEN}
-      release_docu: .woodpecker/release.md
+      release_docu: dist/release.md
       release_files:
         - file: dist/helm-manifest-renderer_${CI_COMMIT_TAG}_linux_amd64.tar.gz
           type: application/gzip

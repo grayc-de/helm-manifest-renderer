@@ -7,6 +7,7 @@ steps:
     image: golang:1.26
     commands:
       - make release-linux-amd64 VERSION=${CI_COMMIT_TAG}
+      - git fetch --tags --force
       - |
         PREV_TAG="$(git tag --sort=-version:refname | grep -Fxv "${CI_COMMIT_TAG}" | head -n1 || true)"
         if [ -n "$PREV_TAG" ]; then

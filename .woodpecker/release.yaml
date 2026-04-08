@@ -28,7 +28,7 @@ steps:
         ' dist/changelog.txt .woodpecker/release.md > dist/release.md
 
   release:
-    image: git.grayc.dev/grayc-devops/woodpecker-simple-release:v0.1.4
+    image: git.grayc.dev/grayc-devops/woodpecker-simple-release:v0.1.5
     depends_on: [build]
     settings:
       forge_url: https://git.grayc.dev

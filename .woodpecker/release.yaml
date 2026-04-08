@@ -26,6 +26,13 @@ steps:
             }
           }
         ' dist/changelog.txt .woodpecker/release.md > dist/release.md
+      - ls -la dist
+      - echo "--- changelog.txt ---"
+      - sed -n '1,120p' dist/changelog.txt
+      - echo "--- release.md template ---"
+      - sed -n '1,120p' .woodpecker/release.md
+      - echo "--- generated dist/release.md ---"
+      - sed -n '1,120p' dist/release.md
 
   release:
     image: git.grayc.dev/grayc-devops/woodpecker-simple-release:v0.1.5

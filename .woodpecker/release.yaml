@@ -7,39 +7,7 @@ steps:
     image: golang:1.26
     commands:
       - make release-linux-amd64 VERSION=${CI_COMMIT_TAG}
-      - echo "CI_COMMIT_TAG=${CI_COMMIT_TAG}"
-      - git tag --sort=-version:refname
-      - |
-        PREV_TAG="$(git tag --sort=-version:refname | sed -n '2p' || true)"
-        echo "PREV_TAG=${PREV_TAG}"
-        if [ -n "$PREV_TAG" ]; then
-          git log --first-parent --pretty='- %s' "${PREV_TAG}..${CI_COMMIT_TAG}" > dist/changelog.txt
-        else
-          git log --first-parent --pretty='- %s' HEAD > dist/changelog.txt
-        fi
-      - |
-        if [ ! -s dist/changelog.txt ]; then
-          printf '%s\n' '- No changes detected.' > dist/changelog.txt
-        fi
-      - |
-        awk -v version="${CI_COMMIT_TAG}" '
-          FILENAME == ARGV[1] { changelog = changelog $0 "\n"; next }
-          {
-            gsub(/\{\{VERSION\}\}/, version)
-            if ($0 == "{{CHANGELOG}}") {
-              printf "%s", changelog
-            } else {
-              print
-            }
-          }
-        ' dist/changelog.txt .woodpecker/release.md > dist/release.md
-      - ls -la dist
-      - echo "--- changelog.txt ---"
-      - sed -n '1,120p' dist/changelog.txt
-      - echo "--- release.md template ---"
-      - sed -n '1,120p' .woodpecker/release.md
-      - echo "--- generated dist/release.md ---"
-      - sed -n '1,120p' dist/release.md
+      - bash .woodpecker/generate-release-notes.sh "${CI_COMMIT_TAG}"
 
   release:
     image: git.grayc.dev/grayc-devops/woodpecker-simple-release:v0.1.5

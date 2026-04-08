@@ -15,8 +15,12 @@ steps:
           git log --first-parent --pretty='- %s' HEAD > dist/changelog.txt
         fi
       - |
+        if [ ! -s dist/changelog.txt ]; then
+          printf '%s\n' '- No changes detected.' > dist/changelog.txt
+        fi
+      - |
         awk -v version="${CI_COMMIT_TAG}" '
-          FNR == NR { changelog = changelog $0 "\n"; next }
+          FILENAME == ARGV[1] { changelog = changelog $0 "\n"; next }
           {
             gsub(/\{\{VERSION\}\}/, version)
             if ($0 == "{{CHANGELOG}}") {

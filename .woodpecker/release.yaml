@@ -8,7 +8,7 @@ steps:
     commands:
       - make release-linux-amd64 VERSION=${CI_COMMIT_TAG}
       - |
-        PREV_TAG="$(git describe --tags --abbrev=0 "${CI_COMMIT_TAG}^" 2>/dev/null || true)"
+        PREV_TAG="$(git tag --sort=-version:refname | grep -Fxv "${CI_COMMIT_TAG}" | head -n1 || true)"
         if [ -n "$PREV_TAG" ]; then
           git log --first-parent --pretty='- %s' "${PREV_TAG}..${CI_COMMIT_TAG}" > dist/changelog.txt
         else

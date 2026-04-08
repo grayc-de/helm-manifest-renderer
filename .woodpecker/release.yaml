@@ -10,7 +10,8 @@ steps:
       - echo "CI_COMMIT_TAG=${CI_COMMIT_TAG}"
       - git tag --sort=-version:refname
       - |
-        PREV_TAG="$(git tag --sort=-version:refname | grep -Fxv "${CI_COMMIT_TAG}" | head -n1 || true)"
+        PREV_TAG="$(git tag --sort=-version:refname | sed -n '2p' || true)"
+        echo "PREV_TAG=${PREV_TAG}"
         if [ -n "$PREV_TAG" ]; then
           git log --first-parent --pretty='- %s' "${PREV_TAG}..${CI_COMMIT_TAG}" > dist/changelog.txt
         else

@@ -30,6 +30,30 @@ Depending on the chart source, you may also need:
 For containerized or CI execution, the image must also provide `helm` in `PATH`.
 The provided container image runs as a non-root user by default.
 
+## Install
+
+To install the latest released binary locally:
+
+```bash
+tar -xzf helm-manifest-renderer_<version>_linux_amd64.tar.gz
+sudo mv helm-manifest-renderer /usr/local/bin/
+sudo chmod +x /usr/local/bin/helm-manifest-renderer
+```
+
+Verify the installation:
+
+```bash
+helm-manifest-renderer --help
+```
+
+To build and install from source instead:
+
+```bash
+make build
+sudo mv helm-manifest-renderer /usr/local/bin/
+sudo chmod +x /usr/local/bin/helm-manifest-renderer
+```
+
 ## Build
 
 ```bash

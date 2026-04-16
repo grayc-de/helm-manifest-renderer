@@ -142,6 +142,44 @@ func TestAssembleManifestsAppliesExcludePathsAfterSplit(t *testing.T) {
 	}
 }
 
+func TestAssembleManifestsAppliesExcludePathsForTopLevelFiles(t *testing.T) {
+	tmpDir := t.TempDir()
+	outDir := filepath.Join(tmpDir, "tmp")
+	manifestsDir := filepath.Join(tmpDir, "manifests")
+	renderRoot := filepath.Join(outDir, "release")
+	excludedFile := "excluded-top-level.yaml"
+
+	if err := os.MkdirAll(filepath.Join(renderRoot, "templates"), 0755); err != nil {
+		t.Fatalf("failed to create render tree: %v", err)
+	}
+
+	if err := os.WriteFile(filepath.Join(renderRoot, "templates", excludedFile), []byte("apiVersion: v1\nkind: ConfigMap\nmetadata:\n  name: excluded\n"), 0644); err != nil {
+		t.Fatalf("failed to write top-level yaml: %v", err)
+	}
+
+	config := config.ChartSourceConfig{
+		PostRender: config.PostRenderConfig{
+			ExcludePaths: []string{excludedFile},
+		},
+	}
+
+	if err := AssembleManifests(renderRoot, manifestsDir, config); err != nil {
+		t.Fatalf("AssembleManifests failed: %v", err)
+	}
+
+	if _, err := os.Stat(filepath.Join(manifestsDir, excludedFile)); !os.IsNotExist(err) {
+		t.Fatalf("expected top-level excluded file to be removed, got err=%v", err)
+	}
+
+	kustContent, err := os.ReadFile(filepath.Join(manifestsDir, "kustomization.yaml"))
+	if err != nil {
+		t.Fatalf("failed to read kustomization.yaml: %v", err)
+	}
+	if strings.Contains(string(kustContent), excludedFile) {
+		t.Fatalf("expected excluded top-level file to be absent from kustomization, got:\n%s", string(kustContent))
+	}
+}
+
 func TestTidyFiles(t *testing.T) {
 	tmpDir := t.TempDir()
 	manifestsDir := filepath.Join(tmpDir, "generated-manifests")

@@ -18,3 +18,4 @@ postRender:
     - grafana/dashboards-1.14/nodes-darwin.yaml
     - grafana/dashboards-1.14/nodes-aix.yaml
   normalizeMetadata: true
+  removeObsoleteQuotes: false

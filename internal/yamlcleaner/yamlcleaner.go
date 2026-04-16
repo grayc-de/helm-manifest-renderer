@@ -11,6 +11,7 @@ import (
 type Options struct {
 	DeletePaths       []string
 	NormalizeMetadata bool
+	RemoveObsoleteQuotes bool
 }
 
 // CleanYaml processes one or more YAML documents and applies configured cleanup rules.
@@ -44,7 +45,9 @@ func CleanYaml(content []byte, opts Options) ([]byte, error) {
 		if opts.NormalizeMetadata {
 			applyStructuralCleanup(doc, isKind(doc, "Deployment") || isKind(doc, "DaemonSet"))
 		}
-
+        if opts.RemoveObsoleteQuotes {
+            removeObsoleteQuotes(doc, 0)
+        }
 		if tidyEmptyNodes(doc, 0) {
 			continue
 		}
@@ -149,6 +152,33 @@ func tidyEmptyNodes(node *yaml.Node, depth int) bool {
 	}
 	return false
 }
+
+func removeObsoleteQuotes(node *yaml.Node, depth int) bool {
+	if node == nil {
+		return false
+	}
+	switch node.Kind {
+	case yaml.MappingNode:
+		for i := 0; i < len(node.Content); i += 2 {
+			val := node.Content[i+1]
+			removeObsoleteQuotes(val, depth+1)
+		}
+		return true
+	case yaml.SequenceNode:
+		for _, child := range node.Content {
+			removeObsoleteQuotes(child, depth+1)
+		}
+		return true
+	case yaml.ScalarNode:
+        // Reset Style to 0 to remove quotes (Double-/SingleQuotedStyle, etc.), will be added again if necessary
+		node.Style = 0
+		return node.Tag == "!!null" || node.Value == "null"
+	}
+	return false
+}
+
+
+
 
 func deleteFromNode(node *yaml.Node, path []string) {
 	if len(path) == 0 || node.Kind != yaml.MappingNode {

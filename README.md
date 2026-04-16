@@ -310,6 +310,7 @@ postRender:
   excludePaths:
     - some/path/to/file.yaml
   normalizeMetadata: true
+  removeObsoleteQuotes: false
 ```
 
 `deleteYamlPaths`
@@ -397,6 +398,12 @@ source:
 
 The renderer also applies targeted cleanup for CRDs and Prometheus-style `expr`
 blocks to keep the output closer to the current shell-based workflow.
+
+`postRender.removeObsoleteQuotes`
+
+- removes unnecessary quotes from rendered YAML
+
+This ensures syntax matches yaml-lint strict mode.
 
 ## Development
 

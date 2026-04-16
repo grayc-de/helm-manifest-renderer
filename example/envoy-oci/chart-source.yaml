@@ -18,3 +18,4 @@ postRender:
     - certgen-rbac.yaml
     - certgen.yaml
   normalizeMetadata: true
+  removeObsoleteQuotes: false

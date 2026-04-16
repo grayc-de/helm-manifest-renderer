@@ -13,6 +13,7 @@ type PostRenderConfig struct {
 	ExcludePaths              []string `yaml:"excludePaths"`
 	SplitYamlDocumentsInPaths []string `yaml:"splitYamlDocumentsInPaths"`
 	NormalizeMetadata         *bool    `yaml:"normalizeMetadata"`
+	RemoveObsoleteQuotes      *bool    `yaml:"removeObsoleteQuotes"`
 }
 
 type LocalSource struct {
@@ -138,6 +139,10 @@ func ParseChartConfig(content []byte) (ChartSourceConfig, error) {
 		defaultValue := true
 		c.PostRender.NormalizeMetadata = &defaultValue
 	}
+    if c.PostRender.RemoveObsoleteQuotes == nil {
+        defaultValue := false
+        c.PostRender.RemoveObsoleteQuotes = &defaultValue
+    }
 
 	return c, nil
 }

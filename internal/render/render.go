@@ -160,6 +160,7 @@ func RunRenderWithOptions(opts Options) error {
 		cleaned, err := yamlcleaner.CleanYaml(content, yamlcleaner.Options{
 			DeletePaths:       cfg.PostRender.DeleteYamlPaths,
 			NormalizeMetadata: *cfg.PostRender.NormalizeMetadata,
+			RemoveObsoleteQuotes: *cfg.PostRender.RemoveObsoleteQuotes,
 		})
 		if err != nil {
 			return err

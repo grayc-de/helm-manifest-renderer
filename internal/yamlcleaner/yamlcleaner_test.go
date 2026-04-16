@@ -156,7 +156,7 @@ kind: Deployment
 `,
 		},
 		{
-			name: "apply custom deleteYamlPaths",
+			name: "apply unquoting",
 			input: `apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -169,11 +169,12 @@ data:
 			options: Options{
 				DeletePaths:       []string{`metadata.labels."app.kubernetes.io/name"`, `metadata.labels."custom/label"`},
 				NormalizeMetadata: true,
+				RemoveObsoleteQuotes: true,
 			},
 			expected: `apiVersion: v1
 kind: ConfigMap
 data:
-  config: "value"
+  config: value
 `,
 		},
 		{

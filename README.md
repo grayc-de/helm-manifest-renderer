@@ -387,7 +387,8 @@ source:
 - splits multi-document YAML files in the assembled output directory
 - each entry may point to a YAML file or a directory relative to `generated-manifests`
 - generated files are named deterministically as:
-  `metadata.name` for CRDs, original basename plus `kind` and `metadata.name` for other resources
+  `metadata.name` for CRDs, original basename plus `kind` and `metadata.name`
+  for other resources
 
 `postRender.normalizeMetadata`
 

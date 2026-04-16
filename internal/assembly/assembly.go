@@ -181,7 +181,12 @@ func AssembleManifests(renderRoot, manifestsDir string, config config.ChartSourc
 		}
 	}
 
-	// Apply ExcludePaths
+	err = SplitYamlDocuments(manifestsDir, config.PostRender.SplitYamlDocumentsInPaths)
+	if err != nil {
+		return err
+	}
+
+	// Apply ExcludePaths after splitting so split outputs can be targeted directly.
 	for _, pattern := range config.PostRender.ExcludePaths {
 		fullPath := pattern
 		if !strings.HasPrefix(pattern, manifestsDir+"/") {

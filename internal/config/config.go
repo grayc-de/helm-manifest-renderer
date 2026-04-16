@@ -9,9 +9,10 @@ import (
 )
 
 type PostRenderConfig struct {
-	DeleteYamlPaths   []string `yaml:"deleteYamlPaths"`
-	ExcludePaths      []string `yaml:"excludePaths"`
-	NormalizeMetadata *bool    `yaml:"normalizeMetadata"`
+	DeleteYamlPaths           []string `yaml:"deleteYamlPaths"`
+	ExcludePaths              []string `yaml:"excludePaths"`
+	SplitYamlDocumentsInPaths []string `yaml:"splitYamlDocumentsInPaths"`
+	NormalizeMetadata         *bool    `yaml:"normalizeMetadata"`
 }
 
 type LocalSource struct {
@@ -129,6 +130,9 @@ func ParseChartConfig(content []byte) (ChartSourceConfig, error) {
 	}
 	if c.PostRender.ExcludePaths == nil {
 		c.PostRender.ExcludePaths = []string{}
+	}
+	if c.PostRender.SplitYamlDocumentsInPaths == nil {
+		c.PostRender.SplitYamlDocumentsInPaths = []string{}
 	}
 	if c.PostRender.NormalizeMetadata == nil {
 		defaultValue := true

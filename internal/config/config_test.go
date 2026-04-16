@@ -39,6 +39,8 @@ postRender:
     - metadata.labels."app.kubernetes.io/name"
   excludePaths:
     - certgen.yaml
+  splitYamlDocumentsInPaths:
+    - templates/crds.yaml
   normalizeMetadata: true`,
 			expected: ChartSourceConfig{
 				SourceType:  "helm",
@@ -54,9 +56,10 @@ postRender:
 				},
 				HelmArgs: []string{"--no-hooks", "--kube-version", "1.33"},
 				PostRender: PostRenderConfig{
-					DeleteYamlPaths:   []string{`metadata.labels."app.kubernetes.io/name"`},
-					ExcludePaths:      []string{"certgen.yaml"},
-					NormalizeMetadata: boolPtr(true),
+					DeleteYamlPaths:           []string{`metadata.labels."app.kubernetes.io/name"`},
+					ExcludePaths:              []string{"certgen.yaml"},
+					SplitYamlDocumentsInPaths: []string{"templates/crds.yaml"},
+					NormalizeMetadata:         boolPtr(true),
 				},
 			},
 		},
@@ -82,9 +85,10 @@ source:
 				},
 				HelmArgs: []string{},
 				PostRender: PostRenderConfig{
-					DeleteYamlPaths:   []string{},
-					ExcludePaths:      []string{},
-					NormalizeMetadata: boolPtr(true),
+					DeleteYamlPaths:           []string{},
+					ExcludePaths:              []string{},
+					SplitYamlDocumentsInPaths: []string{},
+					NormalizeMetadata:         boolPtr(true),
 				},
 			},
 		},
@@ -114,9 +118,10 @@ source:
 				},
 				HelmArgs: []string{},
 				PostRender: PostRenderConfig{
-					DeleteYamlPaths:   []string{},
-					ExcludePaths:      []string{},
-					NormalizeMetadata: boolPtr(true),
+					DeleteYamlPaths:           []string{},
+					ExcludePaths:              []string{},
+					SplitYamlDocumentsInPaths: []string{},
+					NormalizeMetadata:         boolPtr(true),
 				},
 			},
 		},

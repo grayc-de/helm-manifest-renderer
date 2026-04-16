@@ -33,11 +33,13 @@ func TestAssembleManifests(t *testing.T) {
 	os.WriteFile(filepath.Join(renderRoot, "charts", "sub1", "templates", "service.yaml"), []byte("apiVersion: v1"), 0644)
 	os.WriteFile(filepath.Join(renderRoot, "charts", "crds", "templates", "crd-good.yaml"), []byte("apiVersion: apiextensions.k8s.io/v1"), 0644)
 	os.WriteFile(filepath.Join(renderRoot, "charts", "crds", "crds", "crd-extra.yaml"), []byte("apiVersion: apiextensions.k8s.io/v1"), 0644)
+	os.WriteFile(filepath.Join(renderRoot, "charts", "crds", "templates", "bundle.yaml"), []byte("apiVersion: apiextensions.k8s.io/v1\nkind: CustomResourceDefinition\nmetadata:\n  name: widgets.example.com\n---\napiVersion: apiextensions.k8s.io/v1\nkind: CustomResourceDefinition\nmetadata:\n  name: gadgets.example.com\n"), 0644)
 	os.WriteFile(filepath.Join(renderRoot, "secret.yaml"), []byte("apiVersion: v1"), 0644) // top level file
 
 	config := config.ChartSourceConfig{
 		PostRender: config.PostRenderConfig{
-			ExcludePaths: []string{"sub1/service.yaml"},
+			ExcludePaths:              []string{"sub1/service.yaml"},
+			SplitYamlDocumentsInPaths: []string{"crds/bundle.yaml"},
 		},
 	}
 
@@ -48,6 +50,8 @@ func TestAssembleManifests(t *testing.T) {
 
 	// Check files
 	expectedFiles := []string{
+		"crds/gadgets-example-com.yaml",
+		"crds/widgets-example-com.yaml",
 		"deployment.yaml",
 		"crds/crd-extra.yaml",
 		"crds/crd-good.yaml",
@@ -73,9 +77,68 @@ func TestAssembleManifests(t *testing.T) {
 
 	// Check kustomization.yaml content
 	kustContent, _ := os.ReadFile(filepath.Join(manifestsDir, "kustomization.yaml"))
-	expectedKust := "resources:\n  - crds/crd-extra.yaml\n  - crds/crd-good.yaml\n  - deployment.yaml\n  - secret.yaml\n"
+	expectedKust := "resources:\n  - crds/crd-extra.yaml\n  - crds/crd-good.yaml\n  - crds/gadgets-example-com.yaml\n  - crds/widgets-example-com.yaml\n  - deployment.yaml\n  - secret.yaml\n"
 	if string(kustContent) != expectedKust {
 		t.Errorf("Kustomization content expected:\n%s\ngot:\n%s", expectedKust, string(kustContent))
+	}
+}
+
+func TestAssembleManifestsAppliesExcludePathsAfterSplit(t *testing.T) {
+	tmpDir := t.TempDir()
+	outDir := filepath.Join(tmpDir, "tmp")
+	manifestsDir := filepath.Join(tmpDir, "manifests")
+	renderRoot := filepath.Join(outDir, "my-release")
+
+	if err := os.MkdirAll(filepath.Join(renderRoot, "charts", "crds", "templates"), 0755); err != nil {
+		t.Fatalf("failed to create render tree: %v", err)
+	}
+
+	bundle := "apiVersion: apiextensions.k8s.io/v1\nkind: CustomResourceDefinition\nmetadata:\n  name: widgets.example.com\n---\napiVersion: apiextensions.k8s.io/v1\nkind: CustomResourceDefinition\nmetadata:\n  name: gadgets.example.com\n"
+	if err := os.WriteFile(filepath.Join(renderRoot, "charts", "crds", "templates", "bundle.yaml"), []byte(bundle), 0644); err != nil {
+		t.Fatalf("failed to write bundle yaml: %v", err)
+	}
+
+	config := config.ChartSourceConfig{
+		PostRender: config.PostRenderConfig{
+			SplitYamlDocumentsInPaths: []string{"crds/bundle.yaml"},
+			ExcludePaths:              []string{"crds/widgets-example-com.yaml"},
+		},
+	}
+
+	if err := AssembleManifests(renderRoot, manifestsDir, config); err != nil {
+		t.Fatalf("AssembleManifests failed: %v", err)
+	}
+
+	expectedFiles := []string{
+		"crds/gadgets-example-com.yaml",
+		"kustomization.yaml",
+	}
+
+	var foundFiles []string
+	filepath.Walk(manifestsDir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if !info.IsDir() {
+			rel, _ := filepath.Rel(manifestsDir, path)
+			foundFiles = append(foundFiles, rel)
+		}
+		return nil
+	})
+
+	sort.Strings(foundFiles)
+	if !reflect.DeepEqual(foundFiles, expectedFiles) {
+		t.Fatalf("expected files %v, got %v", expectedFiles, foundFiles)
+	}
+
+	kustContent, err := os.ReadFile(filepath.Join(manifestsDir, "kustomization.yaml"))
+	if err != nil {
+		t.Fatalf("failed to read kustomization.yaml: %v", err)
+	}
+
+	expectedKust := "resources:\n  - crds/gadgets-example-com.yaml\n"
+	if string(kustContent) != expectedKust {
+		t.Fatalf("Kustomization content expected:\n%s\ngot:\n%s", expectedKust, string(kustContent))
 	}
 }
 

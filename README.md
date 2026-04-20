@@ -137,7 +137,7 @@ notice and continues with the chart defaults.
 Use `--stage-log` if you want detailed progress output for each renderer stage
 and active post-render step.
 
-## Example
+## Examples
 
 A few runnable examples are included under [example](/home/budi/_dev/grayc/grayc-devops/helm-manifest-renderer/example):
 

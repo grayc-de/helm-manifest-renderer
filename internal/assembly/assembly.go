@@ -13,6 +13,8 @@ import (
 	"strings"
 )
 
+type StageLogger func(string)
+
 func splitPathSegments(path string) []string {
 	cleaned := filepath.Clean(path)
 	if cleaned == "." {
@@ -102,8 +104,11 @@ func resolveManifestRelativePath(manifestsDir, relativePath string) (string, err
 	return filepath.Join(manifestsDir, cleaned), nil
 }
 
-func ApplyMovePaths(manifestsDir string, rules []config.MovePathRule) error {
+func ApplyMovePaths(manifestsDir string, rules []config.MovePathRule, log StageLogger) error {
 	for _, rule := range rules {
+		if log != nil {
+			log(fmt.Sprintf("postRender.movePaths: %s -> %s", rule.From, rule.To))
+		}
 		pattern, err := resolveManifestRelativePath(manifestsDir, filepath.FromSlash(rule.From))
 		if err != nil {
 			return err
@@ -145,7 +150,10 @@ func ApplyMovePaths(manifestsDir string, rules []config.MovePathRule) error {
 	return nil
 }
 
-func AssembleManifests(renderRoot, manifestsDir string, config config.ChartSourceConfig) error {
+func AssembleManifests(renderRoot, manifestsDir string, config config.ChartSourceConfig, log StageLogger) error {
+	if log != nil {
+		log(fmt.Sprintf("Assemble manifests: %s -> %s", renderRoot, manifestsDir))
+	}
 	os.RemoveAll(manifestsDir)
 	os.MkdirAll(manifestsDir, 0755)
 
@@ -243,13 +251,19 @@ func AssembleManifests(renderRoot, manifestsDir string, config config.ChartSourc
 	if err != nil {
 		return err
 	}
+	if log != nil && len(config.PostRender.SplitYamlDocumentsInPaths) > 0 {
+		log(fmt.Sprintf("postRender.splitYamlDocumentsInPaths: %d path(s)", len(config.PostRender.SplitYamlDocumentsInPaths)))
+	}
 
-	if err := ApplyMovePaths(manifestsDir, config.PostRender.MovePaths); err != nil {
+	if err := ApplyMovePaths(manifestsDir, config.PostRender.MovePaths, log); err != nil {
 		return err
 	}
 
 	// Apply ExcludePaths after move rules so the final manifest layout can be targeted directly.
 	for _, pattern := range config.PostRender.ExcludePaths {
+		if log != nil {
+			log(fmt.Sprintf("postRender.excludePaths: %s", pattern))
+		}
 		fullPath := pattern
 		if !strings.HasPrefix(pattern, manifestsDir+"/") {
 			fullPath = filepath.Join(manifestsDir, pattern)
@@ -258,6 +272,9 @@ func AssembleManifests(renderRoot, manifestsDir string, config config.ChartSourc
 	}
 
 	// Generate Kustomization
+	if log != nil {
+		log("Generate kustomization.yaml")
+	}
 	err = GenerateKustomization(manifestsDir)
 	return err
 }

@@ -119,6 +119,7 @@ Available flags:
 - `--values-file`: optional path to the Helm values file
 - `--output-dir`: output directory for generated manifests
 - `--temp-dir`: temporary render directory
+- `--stage-log`: print stage-by-stage progress information
 
 Example:
 
@@ -132,6 +133,9 @@ Example:
 
 If no values file is found and `--values-file` is not set, the renderer prints a
 notice and continues with the chart defaults.
+
+Use `--stage-log` if you want detailed progress output for each renderer stage
+and active post-render step.
 
 ## Example
 

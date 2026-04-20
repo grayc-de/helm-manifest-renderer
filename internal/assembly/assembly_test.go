@@ -43,7 +43,7 @@ func TestAssembleManifests(t *testing.T) {
 		},
 	}
 
-	err := AssembleManifests(renderRoot, manifestsDir, config)
+	err := AssembleManifests(renderRoot, manifestsDir, config, nil)
 	if err != nil {
 		t.Fatalf("AssembleManifests failed: %v", err)
 	}
@@ -105,7 +105,7 @@ func TestAssembleManifestsAppliesExcludePathsAfterSplit(t *testing.T) {
 		},
 	}
 
-	if err := AssembleManifests(renderRoot, manifestsDir, config); err != nil {
+	if err := AssembleManifests(renderRoot, manifestsDir, config, nil); err != nil {
 		t.Fatalf("AssembleManifests failed: %v", err)
 	}
 
@@ -170,7 +170,7 @@ func TestAssembleManifestsAppliesExcludePathsAfterMovePaths(t *testing.T) {
 		},
 	}
 
-	if err := AssembleManifests(renderRoot, manifestsDir, config); err != nil {
+	if err := AssembleManifests(renderRoot, manifestsDir, config, nil); err != nil {
 		t.Fatalf("AssembleManifests failed: %v", err)
 	}
 

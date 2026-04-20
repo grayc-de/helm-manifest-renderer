@@ -31,6 +31,7 @@ type Options struct {
 	ValuesFile string
 	TempDir    string
 	OutputDir  string
+	StageLog   bool
 }
 
 func info(message string) {
@@ -39,6 +40,12 @@ func info(message string) {
 
 func warn(message string) {
 	fmt.Fprintf(os.Stderr, "%s[WARN]%s  %s\n", colorYellow, colorReset, message)
+}
+
+func stage(enabled bool, message string) {
+	if enabled {
+		info("[stage] " + message)
+	}
 }
 
 func ErrorPrefix() string {
@@ -80,11 +87,13 @@ func RunRenderWithOptions(opts Options) error {
 	if err != nil {
 		return fmt.Errorf("%s not found", configFile)
 	}
+	stage(opts.StageLog, fmt.Sprintf("Load config: %s", configFile))
 
 	cfg, err := config.ParseChartConfig(content)
 	if err != nil {
 		return fmt.Errorf("failed to parse config: %v", err)
 	}
+	stage(opts.StageLog, fmt.Sprintf("Parsed config: sourceType=%s releaseName=%s namespace=%s", cfg.SourceType, cfg.ReleaseName, cfg.Namespace))
 
 	valuesFile, err := resolveValuesFile(opts.ValuesFile)
 	if err != nil {
@@ -92,19 +101,23 @@ func RunRenderWithOptions(opts Options) error {
 	}
 	if valuesFile == "" {
 		info("No values file found. Rendering chart with the default values from the Helm chart.")
+	} else {
+		stage(opts.StageLog, fmt.Sprintf("Use values file: %s", valuesFile))
 	}
 
 	os.RemoveAll(tempDir)
 	os.MkdirAll(tempDir, 0755)
 	defer os.RemoveAll(tempDir)
+	stage(opts.StageLog, fmt.Sprintf("Prepare temp dir: %s", tempDir))
 
 	cmds, err := helm.GenerateHelmCommands(cfg, tempDir, valuesFile)
 	if err != nil {
 		return fmt.Errorf("failed to generate helm command: %v", err)
 	}
+	stage(opts.StageLog, fmt.Sprintf("Render chart with %d helm command(s)", len(cmds)))
 
 	for _, c := range cmds {
-		info(fmt.Sprintf("Running: %v", c))
+		stage(opts.StageLog, fmt.Sprintf("Run command: %v", c))
 		cmd := exec.Command(c[0], c[1:]...)
 		if len(c) >= 3 && c[0] == "helm" && c[1] == "repo" && (c[2] == "add" || c[2] == "update") {
 			cmd.Stdout = io.Discard
@@ -141,7 +154,11 @@ func RunRenderWithOptions(opts Options) error {
 	if renderRoot == "" {
 		return fmt.Errorf("no rendered output found in %s", tempDir)
 	}
+	stage(opts.StageLog, fmt.Sprintf("Detected render root: %s", renderRoot))
 
+	if len(cfg.PostRender.DeleteYamlPaths) > 0 || *cfg.PostRender.NormalizeMetadata {
+		stage(opts.StageLog, fmt.Sprintf("Cleanup rendered YAML: deleteYamlPaths=%d normalizeMetadata=%t", len(cfg.PostRender.DeleteYamlPaths), *cfg.PostRender.NormalizeMetadata))
+	}
 	err = filepath.Walk(renderRoot, func(path string, info os.FileInfo, walkErr error) error {
 		if walkErr != nil {
 			return walkErr
@@ -170,11 +187,14 @@ func RunRenderWithOptions(opts Options) error {
 		return fmt.Errorf("failed to clean yamls: %v", err)
 	}
 
-	err = assembly.AssembleManifests(renderRoot, outputDir, cfg)
+	err = assembly.AssembleManifests(renderRoot, outputDir, cfg, func(message string) {
+		stage(opts.StageLog, message)
+	})
 	if err != nil {
 		return fmt.Errorf("failed to assemble manifests: %v", err)
 	}
 
+	stage(opts.StageLog, fmt.Sprintf("Tidy output files: %s", outputDir))
 	err = assembly.TidyFiles(outputDir)
 	if err != nil {
 		return fmt.Errorf("failed to tidy files: %v", err)

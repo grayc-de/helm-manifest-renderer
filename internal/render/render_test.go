@@ -1,6 +1,12 @@
 package render
 
-import "testing"
+import (
+	"bytes"
+	"io"
+	"os"
+	"strings"
+	"testing"
+)
 
 func TestShouldSkipStructuredCleanup(t *testing.T) {
 	tests := []struct {
@@ -32,5 +38,37 @@ func TestShouldSkipStructuredCleanup(t *testing.T) {
 				t.Fatalf("shouldSkipStructuredCleanup(%q) = %v, want %v", tt.path, got, tt.want)
 			}
 		})
+	}
+}
+
+func TestStage(t *testing.T) {
+	originalStdout := os.Stdout
+	reader, writer, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("failed to create stdout pipe: %v", err)
+	}
+	os.Stdout = writer
+	defer func() {
+		os.Stdout = originalStdout
+	}()
+
+	stage(false, "disabled")
+	stage(true, "enabled")
+
+	if err := writer.Close(); err != nil {
+		t.Fatalf("failed to close pipe writer: %v", err)
+	}
+
+	var output bytes.Buffer
+	if _, err := io.Copy(&output, reader); err != nil {
+		t.Fatalf("failed to read captured stdout: %v", err)
+	}
+
+	logged := output.String()
+	if strings.Contains(logged, "disabled") {
+		t.Fatalf("did not expect disabled stage to be logged, got: %q", logged)
+	}
+	if !strings.Contains(logged, "[stage] enabled") {
+		t.Fatalf("expected enabled stage log, got: %q", logged)
 	}
 }

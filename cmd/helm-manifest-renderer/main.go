@@ -13,6 +13,7 @@ func main() {
 	valuesFile := flag.String("values-file", "", "Optional path to the values file")
 	outputDir := flag.String("output-dir", render.DefaultOutputDir, "Directory for generated manifests")
 	tempDir := flag.String("temp-dir", render.DefaultTempDir, "Temporary render output directory")
+	stageLog := flag.Bool("stage-log", false, "Print stage-by-stage progress information")
 	flag.Parse()
 
 	targetDir := "."
@@ -26,6 +27,7 @@ func main() {
 		ValuesFile: *valuesFile,
 		TempDir:    *tempDir,
 		OutputDir:  *outputDir,
+		StageLog:   *stageLog,
 	})
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%s %v\n", render.ErrorPrefix(), err)

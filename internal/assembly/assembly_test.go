@@ -142,6 +142,72 @@ func TestAssembleManifestsAppliesExcludePathsAfterSplit(t *testing.T) {
 	}
 }
 
+func TestAssembleManifestsAppliesExcludePathsAfterMovePaths(t *testing.T) {
+	tmpDir := t.TempDir()
+	manifestsDir := filepath.Join(tmpDir, "manifests")
+	renderRoot := filepath.Join(tmpDir, "render", "release")
+
+	if err := os.MkdirAll(filepath.Join(renderRoot, "templates"), 0755); err != nil {
+		t.Fatalf("failed to create render tree: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(renderRoot, "templates", "alpha.yaml"), []byte("apiVersion: v1"), 0644); err != nil {
+		t.Fatalf("failed to write alpha.yaml: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(renderRoot, "templates", "beta.yaml"), []byte("apiVersion: v1"), 0644); err != nil {
+		t.Fatalf("failed to write beta.yaml: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(renderRoot, "templates", "keep.txt"), []byte("ignored"), 0644); err != nil {
+		t.Fatalf("failed to write keep.txt: %v", err)
+	}
+
+	config := config.ChartSourceConfig{
+		PostRender: config.PostRenderConfig{
+			MovePaths: []config.MovePathRule{
+				{From: "alpha.yaml", To: "group-a"},
+				{From: "*.yaml", To: "group-b"},
+			},
+			ExcludePaths: []string{"group-b/beta.yaml"},
+		},
+	}
+
+	if err := AssembleManifests(renderRoot, manifestsDir, config); err != nil {
+		t.Fatalf("AssembleManifests failed: %v", err)
+	}
+
+	expectedFiles := []string{
+		"group-a/alpha.yaml",
+		"keep.txt",
+		"kustomization.yaml",
+	}
+
+	var foundFiles []string
+	filepath.Walk(manifestsDir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if !info.IsDir() {
+			rel, _ := filepath.Rel(manifestsDir, path)
+			foundFiles = append(foundFiles, rel)
+		}
+		return nil
+	})
+
+	sort.Strings(foundFiles)
+	if !reflect.DeepEqual(foundFiles, expectedFiles) {
+		t.Fatalf("expected files %v, got %v", expectedFiles, foundFiles)
+	}
+
+	kustContent, err := os.ReadFile(filepath.Join(manifestsDir, "kustomization.yaml"))
+	if err != nil {
+		t.Fatalf("failed to read kustomization.yaml: %v", err)
+	}
+
+	expectedKust := "resources:\n  - group-a/alpha.yaml\n"
+	if string(kustContent) != expectedKust {
+		t.Fatalf("Kustomization content expected:\n%s\ngot:\n%s", expectedKust, string(kustContent))
+	}
+}
+
 func TestTidyFiles(t *testing.T) {
 	tmpDir := t.TempDir()
 	manifestsDir := filepath.Join(tmpDir, "generated-manifests")

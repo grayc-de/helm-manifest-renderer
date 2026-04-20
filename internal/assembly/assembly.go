@@ -2,6 +2,7 @@ package assembly
 
 import (
 	"bytes"
+	"fmt"
 	"git.grayc.dev/grayc-devops/helm-manifest-renderer/internal/config"
 	"io"
 	"io/fs"
@@ -85,6 +86,63 @@ func copyDir(src, dst string) error {
 		}
 		return copyFile(path, dstPath)
 	})
+}
+
+func resolveManifestRelativePath(manifestsDir, relativePath string) (string, error) {
+	if filepath.IsAbs(relativePath) {
+		return "", fmt.Errorf("path must be relative: %s", relativePath)
+	}
+	cleaned := filepath.Clean(relativePath)
+	if cleaned == "." {
+		return manifestsDir, nil
+	}
+	if cleaned == ".." || strings.HasPrefix(cleaned, ".."+string(os.PathSeparator)) {
+		return "", fmt.Errorf("path must stay within manifests dir: %s", relativePath)
+	}
+	return filepath.Join(manifestsDir, cleaned), nil
+}
+
+func ApplyMovePaths(manifestsDir string, rules []config.MovePathRule) error {
+	for _, rule := range rules {
+		pattern, err := resolveManifestRelativePath(manifestsDir, filepath.FromSlash(rule.From))
+		if err != nil {
+			return err
+		}
+		targetDir, err := resolveManifestRelativePath(manifestsDir, filepath.FromSlash(rule.To))
+		if err != nil {
+			return err
+		}
+
+		matches, err := filepath.Glob(pattern)
+		if err != nil {
+			return err
+		}
+		if err := os.MkdirAll(targetDir, 0755); err != nil {
+			return err
+		}
+
+		for _, match := range matches {
+			info, err := os.Stat(match)
+			if err != nil {
+				return err
+			}
+			if info.IsDir() {
+				continue
+			}
+
+			destination := filepath.Join(targetDir, filepath.Base(match))
+			if filepath.Clean(match) == filepath.Clean(destination) {
+				continue
+			}
+			if err := os.MkdirAll(filepath.Dir(destination), 0755); err != nil {
+				return err
+			}
+			if err := os.Rename(match, destination); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
 
 func AssembleManifests(renderRoot, manifestsDir string, config config.ChartSourceConfig) error {
@@ -186,7 +244,11 @@ func AssembleManifests(renderRoot, manifestsDir string, config config.ChartSourc
 		return err
 	}
 
-	// Apply ExcludePaths after splitting so split outputs can be targeted directly.
+	if err := ApplyMovePaths(manifestsDir, config.PostRender.MovePaths); err != nil {
+		return err
+	}
+
+	// Apply ExcludePaths after move rules so the final manifest layout can be targeted directly.
 	for _, pattern := range config.PostRender.ExcludePaths {
 		fullPath := pattern
 		if !strings.HasPrefix(pattern, manifestsDir+"/") {

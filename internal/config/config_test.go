@@ -41,6 +41,9 @@ postRender:
     - certgen.yaml
   splitYamlDocumentsInPaths:
     - templates/crds.yaml
+  movePaths:
+    - from: "*.yaml"
+      to: grouped
   normalizeMetadata: true`,
 			expected: ChartSourceConfig{
 				SourceType:  "helm",
@@ -59,6 +62,7 @@ postRender:
 					DeleteYamlPaths:           []string{`metadata.labels."app.kubernetes.io/name"`},
 					ExcludePaths:              []string{"certgen.yaml"},
 					SplitYamlDocumentsInPaths: []string{"templates/crds.yaml"},
+					MovePaths:                 []MovePathRule{{From: "*.yaml", To: "grouped"}},
 					NormalizeMetadata:         boolPtr(true),
 				},
 			},
@@ -88,6 +92,7 @@ source:
 					DeleteYamlPaths:           []string{},
 					ExcludePaths:              []string{},
 					SplitYamlDocumentsInPaths: []string{},
+					MovePaths:                 []MovePathRule{},
 					NormalizeMetadata:         boolPtr(true),
 				},
 			},
@@ -121,6 +126,7 @@ source:
 					DeleteYamlPaths:           []string{},
 					ExcludePaths:              []string{},
 					SplitYamlDocumentsInPaths: []string{},
+					MovePaths:                 []MovePathRule{},
 					NormalizeMetadata:         boolPtr(true),
 				},
 			},

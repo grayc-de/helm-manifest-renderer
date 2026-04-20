@@ -9,10 +9,16 @@ import (
 )
 
 type PostRenderConfig struct {
-	DeleteYamlPaths           []string `yaml:"deleteYamlPaths"`
-	ExcludePaths              []string `yaml:"excludePaths"`
-	SplitYamlDocumentsInPaths []string `yaml:"splitYamlDocumentsInPaths"`
-	NormalizeMetadata         *bool    `yaml:"normalizeMetadata"`
+	DeleteYamlPaths           []string       `yaml:"deleteYamlPaths"`
+	ExcludePaths              []string       `yaml:"excludePaths"`
+	SplitYamlDocumentsInPaths []string       `yaml:"splitYamlDocumentsInPaths"`
+	MovePaths                 []MovePathRule `yaml:"movePaths"`
+	NormalizeMetadata         *bool          `yaml:"normalizeMetadata"`
+}
+
+type MovePathRule struct {
+	From string `yaml:"from"`
+	To   string `yaml:"to"`
 }
 
 type LocalSource struct {
@@ -134,9 +140,20 @@ func ParseChartConfig(content []byte) (ChartSourceConfig, error) {
 	if c.PostRender.SplitYamlDocumentsInPaths == nil {
 		c.PostRender.SplitYamlDocumentsInPaths = []string{}
 	}
+	if c.PostRender.MovePaths == nil {
+		c.PostRender.MovePaths = []MovePathRule{}
+	}
 	if c.PostRender.NormalizeMetadata == nil {
 		defaultValue := true
 		c.PostRender.NormalizeMetadata = &defaultValue
+	}
+	for i, rule := range c.PostRender.MovePaths {
+		if strings.TrimSpace(rule.From) == "" {
+			return ChartSourceConfig{}, fmt.Errorf("postRender.movePaths[%d].from must be set", i)
+		}
+		if strings.TrimSpace(rule.To) == "" {
+			return ChartSourceConfig{}, fmt.Errorf("postRender.movePaths[%d].to must be set", i)
+		}
 	}
 
 	return c, nil

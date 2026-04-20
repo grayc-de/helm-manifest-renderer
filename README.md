@@ -188,6 +188,9 @@ postRender:
     - some/path/to/file.yaml
   splitYamlDocumentsInPaths:
     - crds/crds.yaml
+  movePaths:
+    - from: "*.yaml"
+      to: grouped
   normalizeMetadata: true
 ```
 
@@ -309,6 +312,9 @@ postRender:
     - metadata.annotations."example.com/remove-me"
   excludePaths:
     - some/path/to/file.yaml
+  movePaths:
+    - from: "*.yaml"
+      to: grouped
   normalizeMetadata: true
 ```
 
@@ -319,6 +325,13 @@ postRender:
 `excludePaths`
 
 - optional list of files or directories to remove from the final output directory
+
+`movePaths`
+
+- optional ordered list of file move rules applied in `generated-manifests`
+- `from` is a glob pattern relative to `generated-manifests`
+- `to` is a destination directory relative to `generated-manifests`
+- only file matches are moved; directories are ignored
 
 `normalizeMetadata`
 
@@ -381,6 +394,17 @@ source:
 `postRender.excludePaths`
 
 - removes matching files or directories from the assembled output directory
+
+`postRender.movePaths`
+
+- moves matching files inside the assembled output directory before excludes
+- rules are applied in order
+- patterns are standard non-recursive glob patterns relative to `generated-manifests`
+
+`postRender.excludePaths`
+
+- removes matching files or directories from the final assembled output layout
+- this runs after `movePaths`, so excludes can target the final destination paths
 
 `postRender.splitYamlDocumentsInPaths`
 

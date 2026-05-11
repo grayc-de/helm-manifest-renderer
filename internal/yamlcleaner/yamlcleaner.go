@@ -87,7 +87,6 @@ func applyStructuralCleanup(node *yaml.Node, isDeploymentOrDaemonSet bool) {
 				key == "app.kubernetes.io/instance" ||
 				key == "app.kubernetes.io/managed-by" ||
 				key == "helm.sh/chart" ||
-				key == "chart" ||
 				key == "heritage" {
 				continue
 			}
@@ -138,7 +137,7 @@ func tidyEmptyNodes(node *yaml.Node, depth int) bool {
 		var newContent []*yaml.Node
 		for _, child := range node.Content {
 			isEmpty := tidyEmptyNodes(child, depth+1)
-			if !isEmpty {
+			if !isEmpty || child.Kind != yaml.ScalarNode {
 				newContent = append(newContent, child)
 			}
 		}

@@ -112,6 +112,29 @@ metadata:
 `,
 		},
 		{
+			name: "preserve empty map entries in sequences",
+			input: `apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+spec:
+  egress:
+    - {}
+  policyTypes:
+    - Egress
+`,
+			options: Options{
+				DeletePaths:       []string{},
+				NormalizeMetadata: true,
+			},
+			expected: `apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+spec:
+  egress:
+    - {}
+  policyTypes:
+    - Egress
+`,
+		},
+		{
 			name: "preserve subresources status in crd schemas",
 			input: `apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
@@ -132,6 +155,41 @@ spec:
     - name: v1alpha1
       subresources:
         status: {}
+`,
+		},
+		{
+			name: "preserve chart properties in crd schemas",
+			input: `apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+spec:
+  versions:
+    - name: v1
+      schema:
+        openAPIV3Schema:
+          properties:
+            spec:
+              properties:
+                chart:
+                  description: Helm chart name or path.
+                  type: string
+`,
+			options: Options{
+				DeletePaths:       []string{},
+				NormalizeMetadata: true,
+			},
+			expected: `apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+spec:
+  versions:
+    - name: v1
+      schema:
+        openAPIV3Schema:
+          properties:
+            spec:
+              properties:
+                chart:
+                  description: Helm chart name or path.
+                  type: string
 `,
 		},
 		{

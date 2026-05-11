@@ -271,12 +271,52 @@ func AssembleManifests(renderRoot, manifestsDir string, config config.ChartSourc
 		os.RemoveAll(fullPath)
 	}
 
+	if err := RemoveEmptyDirs(manifestsDir); err != nil {
+		return err
+	}
+
 	// Generate Kustomization
 	if log != nil {
 		log("Generate kustomization.yaml")
 	}
 	err = GenerateKustomization(manifestsDir)
 	return err
+}
+
+func RemoveEmptyDirs(root string) error {
+	var dirs []string
+	if err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if d.IsDir() && path != root {
+			dirs = append(dirs, path)
+		}
+		return nil
+	}); err != nil {
+		return err
+	}
+
+	sort.Slice(dirs, func(i, j int) bool {
+		return len(dirs[i]) > len(dirs[j])
+	})
+
+	for _, dir := range dirs {
+		entries, err := os.ReadDir(dir)
+		if err != nil {
+			if os.IsNotExist(err) {
+				continue
+			}
+			return err
+		}
+		if len(entries) == 0 {
+			if err := os.Remove(dir); err != nil && !os.IsNotExist(err) {
+				return err
+			}
+		}
+	}
+
+	return nil
 }
 
 func GenerateKustomization(manifestsDir string) error {

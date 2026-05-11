@@ -208,6 +208,59 @@ func TestAssembleManifestsAppliesExcludePathsAfterMovePaths(t *testing.T) {
 	}
 }
 
+func TestAssembleManifestsRemovesEmptyDirectories(t *testing.T) {
+	tmpDir := t.TempDir()
+	manifestsDir := filepath.Join(tmpDir, "manifests")
+	renderRoot := filepath.Join(tmpDir, "render", "release")
+
+	templatesDir := filepath.Join(renderRoot, "charts", "crds", "templates", "example.io")
+	if err := os.MkdirAll(templatesDir, 0755); err != nil {
+		t.Fatalf("failed to create render tree: %v", err)
+	}
+
+	crd := "apiVersion: apiextensions.k8s.io/v1\nkind: CustomResourceDefinition\nmetadata:\n  name: widgets.example.io\n"
+	if err := os.WriteFile(filepath.Join(templatesDir, "widget.yaml"), []byte(crd), 0644); err != nil {
+		t.Fatalf("failed to write crd yaml: %v", err)
+	}
+
+	config := config.ChartSourceConfig{}
+
+	if err := AssembleManifests(renderRoot, manifestsDir, config, nil); err != nil {
+		t.Fatalf("AssembleManifests failed: %v", err)
+	}
+
+	for _, dir := range []string{
+		filepath.Join(manifestsDir, "templates"),
+		filepath.Join(manifestsDir, "templates", "example.io"),
+	} {
+		if _, err := os.Stat(dir); !os.IsNotExist(err) {
+			t.Fatalf("expected empty directory %s to be removed, stat error: %v", dir, err)
+		}
+	}
+
+	expectedFiles := []string{
+		"crds/example.io/widget.yaml",
+		"kustomization.yaml",
+	}
+
+	var foundFiles []string
+	filepath.Walk(manifestsDir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if !info.IsDir() {
+			rel, _ := filepath.Rel(manifestsDir, path)
+			foundFiles = append(foundFiles, rel)
+		}
+		return nil
+	})
+
+	sort.Strings(foundFiles)
+	if !reflect.DeepEqual(foundFiles, expectedFiles) {
+		t.Fatalf("expected files %v, got %v", expectedFiles, foundFiles)
+	}
+}
+
 func TestTidyFiles(t *testing.T) {
 	tmpDir := t.TempDir()
 	manifestsDir := filepath.Join(tmpDir, "generated-manifests")

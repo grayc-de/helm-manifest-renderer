@@ -84,7 +84,6 @@ func applyStructuralCleanup(node *yaml.Node, isDeploymentOrDaemonSet bool) {
 			val := node.Content[i+1]
 
 			if key == "app.kubernetes.io/version" ||
-				key == "app.kubernetes.io/instance" ||
 				key == "app.kubernetes.io/managed-by" ||
 				key == "helm.sh/chart" ||
 				key == "heritage" {

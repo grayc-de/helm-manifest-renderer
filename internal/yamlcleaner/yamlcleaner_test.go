@@ -10,7 +10,7 @@ func TestCleanYaml(t *testing.T) {
 		expected string
 	}{
 		{
-			name: "remove helm and app labels when normalization is enabled",
+			name: "remove helm labels but keep selector-relevant app instance when normalization is enabled",
 			input: `apiVersion: v1
 kind: Service
 metadata:
@@ -34,6 +34,7 @@ kind: Service
 metadata:
   labels:
     app.kubernetes.io/name: my-app
+    app.kubernetes.io/instance: my-release
     keep: me
 spec:
   ports:

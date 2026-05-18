@@ -397,7 +397,6 @@ func TidyFiles(manifestsDir string) error {
 func cleanupCRDYAML(content string) string {
 	patterns := []*regexp.Regexp{
 		regexp.MustCompile(`(?m)^[ \t]*controller-gen\.kubebuilder\.io/version:[ \t]*.*\n`),
-		regexp.MustCompile(`(?m)^[ \t]*app\.kubernetes\.io/instance:[ \t]*.*\n`),
 		regexp.MustCompile(`(?m)^[ \t]*app\.kubernetes\.io/managed-by:[ \t]*.*\n`),
 		regexp.MustCompile(`(?m)^[ \t]*app\.kubernetes\.io/version:[ \t]*.*\n`),
 		regexp.MustCompile(`(?m)^[ \t]*helm\.sh/chart:[ \t]*.*\n`),

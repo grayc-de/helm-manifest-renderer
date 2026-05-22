@@ -10,7 +10,7 @@ func TestCleanYaml(t *testing.T) {
 		expected string
 	}{
 		{
-			name: "remove helm labels but keep selector-relevant app instance when normalization is enabled",
+			name: "remove helm labels but keep app version and selector-relevant app instance when normalization is enabled",
 			input: `apiVersion: v1
 kind: Service
 metadata:
@@ -34,6 +34,7 @@ kind: Service
 metadata:
   labels:
     app.kubernetes.io/name: my-app
+    app.kubernetes.io/version: 1.0.0
     app.kubernetes.io/instance: my-release
     keep: me
 spec:
@@ -194,7 +195,7 @@ spec:
 `,
 		},
 		{
-			name: "remove empty metadata blocks",
+			name: "remove empty metadata blocks while preserving app version labels",
 			input: `apiVersion: v1
 kind: Deployment
 metadata:
@@ -212,6 +213,9 @@ status:
 			},
 			expected: `apiVersion: v1
 kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/version: 1.0.0
 `,
 		},
 		{

@@ -34,3 +34,14 @@ steps:
         git.grayc.dev:
           username: {from_secret: CONTAINER_REGISTRY_USERNAME}
           password: {from_secret: CONTAINER_REGISTRY_PASSWORD}
+
+  image-ghcr:
+    image: kokuwaio/buildctl:v0.28.0
+    depends_on: [build]
+    settings:
+      platform: linux/amd64
+      name: "ghcr.io/grayc-de/helm-manifest-renderer:${CI_COMMIT_TAG}"
+      auth:
+        ghcr.io:
+          username: woodpecker
+          password: {from_secret: GITHUB_SYNC_TOKEN}

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 
+	"git.grayc.dev/grayc-devops/helm-manifest-renderer/internal/buildinfo"
 	"git.grayc.dev/grayc-devops/helm-manifest-renderer/internal/render"
 )
 
@@ -14,7 +15,13 @@ func main() {
 	outputDir := flag.String("output-dir", render.DefaultOutputDir, "Directory for generated manifests")
 	tempDir := flag.String("temp-dir", render.DefaultTempDir, "Temporary render output directory")
 	stageLog := flag.Bool("stage-log", false, "Print stage-by-stage progress information")
+	showVersion := flag.Bool("version", false, "Print version information and exit")
 	flag.Parse()
+
+	if *showVersion {
+		fmt.Println(buildinfo.Version)
+		return
+	}
 
 	targetDir := "."
 	if flag.NArg() > 0 {

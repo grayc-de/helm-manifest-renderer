@@ -30,6 +30,8 @@ steps:
     settings:
       platform: linux/amd64
       name: "git.grayc.dev/grayc-devops/helm-manifest-renderer:${CI_COMMIT_TAG}"
+      build_args:
+        VERSION: ${CI_COMMIT_TAG}
       auth:
         git.grayc.dev:
           username: {from_secret: CONTAINER_REGISTRY_USERNAME}
@@ -41,6 +43,8 @@ steps:
     settings:
       platform: linux/amd64
       name: "ghcr.io/grayc-de/helm-manifest-renderer:${CI_COMMIT_TAG}"
+      build_args:
+        VERSION: ${CI_COMMIT_TAG}
       auth:
         ghcr.io:
           username: woodpecker

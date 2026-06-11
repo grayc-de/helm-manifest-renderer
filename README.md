@@ -44,6 +44,7 @@ Verify the installation:
 
 ```bash
 helm-manifest-renderer --help
+helm-manifest-renderer --version
 ```
 
 To build and install from source instead:
@@ -120,6 +121,7 @@ Available flags:
 - `--output-dir`: output directory for generated manifests
 - `--temp-dir`: temporary render directory
 - `--stage-log`: print stage-by-stage progress information
+- `--version`: print the renderer version and exit
 
 Example:
 

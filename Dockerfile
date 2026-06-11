@@ -1,12 +1,16 @@
 FROM golang:1.26 AS builder
 
+ARG VERSION=dev
+
 WORKDIR /src
 
 COPY go.mod go.sum ./
 RUN go mod download
 
 COPY . .
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /out/helm-manifest-renderer ./cmd/helm-manifest-renderer
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
+  -ldflags "-X git.grayc.dev/grayc-devops/helm-manifest-renderer/internal/buildinfo.Version=${VERSION}" \
+  -o /out/helm-manifest-renderer ./cmd/helm-manifest-renderer
 
 FROM debian:bookworm-slim
 

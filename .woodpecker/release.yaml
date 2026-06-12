@@ -61,4 +61,4 @@ steps:
       auth:
         snapdevops.azurecr.io:
           username: grayc-token
-          password: { from_secret: SNAPDEVOPS_ACR_SYNC_TOKEN }
+          password: {from_secret: SNAPDEVOPS_ACR_SYNC_TOKEN}

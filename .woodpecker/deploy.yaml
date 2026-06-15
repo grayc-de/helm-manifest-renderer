@@ -30,5 +30,5 @@ steps:
       name: docker.io/graycgmbh/helm-manifest-renderer:latest
       auth:
         docker.io:
-          username: {from_secret: DOCKERHUB_USERNAME}
-          password: {from_secret: DOCKERHUB_TOKEN}
+          username: {from_secret: docker_io_username}
+          password: {from_secret: docker_io_password}

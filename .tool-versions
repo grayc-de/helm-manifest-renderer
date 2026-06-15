@@ -1,0 +1,5 @@
+yamllint 1.38.0
+markdownlint-cli2 0.22.1
+just 1.52.0
+golang 1.26.4
+make 4.4.1

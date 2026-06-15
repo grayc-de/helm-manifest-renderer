@@ -22,3 +22,13 @@ steps:
         git.grayc.dev:
           username: {from_secret: CONTAINER_REGISTRY_USERNAME}
           password: {from_secret: CONTAINER_REGISTRY_PASSWORD}
+
+  image-dockerhub:
+    image: kokuwaio/buildctl:v0.28.0
+    settings:
+      platform: linux/amd64
+      name: docker.io/graycgmbh/helm-manifest-renderer:latest
+      auth:
+        docker.io:
+          username: {from_secret: DOCKERHUB_USERNAME}
+          password: {from_secret: DOCKERHUB_TOKEN}

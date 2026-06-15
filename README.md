@@ -61,7 +61,14 @@ sudo chmod +x /usr/local/bin/helm-manifest-renderer
 make build
 ```
 
-This produces the binary:
+Or, if you have [`just`](https://just.systems) installed:
+
+```bash
+just build
+```
+
+The `just build` recipe simply delegates to `make build`, so the binary is
+stamped with the same version ldflags either way. This produces the binary:
 
 ```bash
 ./helm-manifest-renderer
@@ -141,13 +148,13 @@ and active post-render step.
 
 ## Examples
 
-A few runnable examples are included under [example](/home/budi/_dev/grayc/grayc-devops/helm-manifest-renderer/example):
+A few runnable examples are included under [example](example):
 
-- [metrics-server-helm](/home/budi/_dev/grayc/grayc-devops/helm-manifest-renderer/example/metrics-server-helm)
+- [metrics-server-helm](example/metrics-server-helm)
   A minimal Helm repository example.
-- [kube-prometheus-stack-helm](/home/budi/_dev/grayc/grayc-devops/helm-manifest-renderer/example/kube-prometheus-stack-helm)
+- [kube-prometheus-stack-helm](example/kube-prometheus-stack-helm)
   A Helm repository example that also demonstrates `postRender` cleanup options.
-- [envoy-oci](/home/budi/_dev/grayc/grayc-devops/helm-manifest-renderer/example/envoy-oci)
+- [envoy-oci](example/envoy-oci)
   An OCI chart example.
 
 The `metrics-server-helm` example can be rendered like this:

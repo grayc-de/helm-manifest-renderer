@@ -10,6 +10,11 @@ build:
 
 # Lint files
 lint:
+    make fmt
     just --unstable --fmt --check --color=always --justfile=.justfile
     yamllint --format=colored --strict .
     markdownlint-cli2 --fix "**/*.md"
+
+# Test the helm renderer
+test:
+    make test

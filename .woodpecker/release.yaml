@@ -52,7 +52,7 @@ steps:
 
   image-snapdevops:
     image: kokuwaio/buildctl:v0.28.0
-    depends_on: [ build ]
+    depends_on: [build]
     settings:
       platform: linux/amd64
       name: "snapdevops.azurecr.io/helm-manifest-renderer:${CI_COMMIT_TAG}"
@@ -61,4 +61,4 @@ steps:
       auth:
         snapdevops.azurecr.io:
           username: grayc-token
-          password: { from_secret: SNAPDEVOPS_ACR_SYNC_TOKEN }
+          password: {from_secret: SNAPDEVOPS_ACR_SYNC_TOKEN}

@@ -1,8 +1,9 @@
 when:
-  event:
-    - pull_request
-    - push
-    - manual
+  - branch: main
+    event:
+      - pull_request
+      - push
+      - manual
 
 steps:
   fmt:

@@ -31,4 +31,4 @@ steps:
       auth:
         docker.io:
           username: {from_secret: DOCKERHUB_USERNAME}
-          password: {from_secret: DOCKERHUB_PASSWORD}
+          password: {from_secret: DOCKERHUB_TOKEN}

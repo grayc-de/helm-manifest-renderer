@@ -317,86 +317,7 @@ source:
 - required
 - chart version passed to Helm
 
-### `postRender`
-
-```yaml
-postRender:
-  deleteYamlPaths:
-    - metadata.annotations."example.com/remove-me"
-  excludePaths:
-    - some/path/to/file.yaml
-  movePaths:
-    - from: "*.yaml"
-      to: grouped
-  normalizeMetadata: true
-```
-
-`deleteYamlPaths`
-
-- optional list of YAML paths to remove from rendered documents
-
-`excludePaths`
-
-- optional list of files or directories to remove from the final output directory
-
-`movePaths`
-
-- optional ordered list of file move rules applied in `generated-manifests`
-- `from` is a glob pattern relative to `generated-manifests`
-- `to` is a destination directory relative to `generated-manifests`
-- only file matches are moved; directories are ignored
-
-`normalizeMetadata`
-
-- optional boolean
-- defaults to `true`
-- removes common noisy metadata and applies targeted cleanup for CRDs and
-  selected multi-line expressions
-
-### Supported Source Types
-
-`sourceType: local`
-
-```yaml
-sourceType: local
-releaseName: my-chart
-namespace: default
-
-source:
-  local:
-    chartPath: ../../charts/my-chart
-    version: 0.1.0
-```
-
-`sourceType: helm`
-
-```yaml
-sourceType: helm
-releaseName: my-chart
-namespace: default
-
-source:
-  helm:
-    repoUrl: https://example.com/charts
-    name: my-chart
-    version: 1.2.3
-    repoName: example
-```
-
-`sourceType: oci`
-
-```yaml
-sourceType: oci
-releaseName: my-chart
-namespace: default
-
-source:
-  oci:
-    registry: ghcr.io
-    path: my-org/charts
-    name: my-chart
-    version: 1.2.3
-```
+Post-render options are described below.
 
 ## Post-Render Behavior
 
@@ -404,15 +325,21 @@ source:
 
 - removes matching YAML paths from rendered documents
 
-`postRender.excludePaths`
-
-- removes matching files or directories from the assembled output directory
-
 `postRender.movePaths`
 
 - moves matching files inside the assembled output directory before excludes
 - rules are applied in order
 - patterns are standard non-recursive glob patterns relative to `generated-manifests`
+
+Example: move CRDs from `generated-manifests/crds` into the root of
+`generated-manifests`:
+
+```yaml
+postRender:
+  movePaths:
+    - from: crds/*.yaml
+      to: .
+```
 
 `postRender.excludePaths`
 
@@ -431,6 +358,7 @@ source:
 
 - enables metadata cleanup such as removing empty annotations and other noisy
   rendered metadata
+- defaults to `true`
 
 The renderer also applies targeted cleanup for CRDs and Prometheus-style `expr`
 blocks to keep the output closer to the current shell-based workflow.

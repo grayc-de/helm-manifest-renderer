@@ -62,3 +62,16 @@ steps:
         snapdevops.azurecr.io:
           username: grayc-token
           password: {from_secret: SNAPDEVOPS_ACR_SYNC_TOKEN}
+
+#  image-dockerhub:
+#    image: kokuwaio/buildctl:v0.28.0
+#    depends_on: [build]
+#    settings:
+#      platform: linux/amd64
+#      name: "docker.io/graycgmbh/helm-manifest-renderer:${CI_COMMIT_TAG}"
+#      build_args:
+#        VERSION: ${CI_COMMIT_TAG}
+#      auth:
+#        docker.io:
+#          username: {from_secret: DOCKERHUB_USERNAME}
+#          password: {from_secret: DOCKERHUB_PASSWORD}

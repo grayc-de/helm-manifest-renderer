@@ -41,13 +41,22 @@ func subchartTemplateTarget(chartsDir, path string) (string, string, bool) {
 	if len(parts) < 3 {
 		return "", "", false
 	}
-	if parts[1] != "templates" {
-		return "", "", false
+
+	for i := 1; i < len(parts)-1; i++ {
+		if parts[i] != "templates" {
+			continue
+		}
+		if parts[i-1] == "crds" {
+			return "", "", false
+		}
+		return parts[i-1], filepath.Join(parts[i+1:]...), true
 	}
-	if parts[0] == "crds" && parts[1] == "templates" {
-		return "", "", false
-	}
-	return parts[0], filepath.Join(parts[2:]...), true
+
+	return "", "", false
+}
+
+func isYAMLFile(path string) bool {
+	return strings.HasSuffix(path, ".yaml") || strings.HasSuffix(path, ".yml")
 }
 
 // copyFile copies a single file from src to dst.
@@ -73,7 +82,14 @@ func copyFile(src, dst string) error {
 	return err
 }
 
-func copyDir(src, dst string) error {
+func copyFileLogged(src, dst string, log StageLogger) error {
+	if log != nil {
+		log(fmt.Sprintf("copy: %s -> %s", src, dst))
+	}
+	return copyFile(src, dst)
+}
+
+func copyDir(src, dst string, log StageLogger) error {
 	return filepath.WalkDir(src, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
@@ -86,7 +102,7 @@ func copyDir(src, dst string) error {
 		if d.IsDir() {
 			return os.MkdirAll(dstPath, 0755)
 		}
-		return copyFile(path, dstPath)
+		return copyFileLogged(path, dstPath, log)
 	})
 }
 
@@ -142,6 +158,9 @@ func ApplyMovePaths(manifestsDir string, rules []config.MovePathRule, log StageL
 			if err := os.MkdirAll(filepath.Dir(destination), 0755); err != nil {
 				return err
 			}
+			if log != nil {
+				log(fmt.Sprintf("move: %s -> %s", match, destination))
+			}
 			if err := os.Rename(match, destination); err != nil {
 				return err
 			}
@@ -162,7 +181,7 @@ func AssembleManifests(renderRoot, manifestsDir string, config config.ChartSourc
 		filepath.WalkDir(templatesDir, func(path string, d fs.DirEntry, err error) error {
 			if !d.IsDir() {
 				rel, _ := filepath.Rel(templatesDir, path)
-				copyFile(path, filepath.Join(manifestsDir, rel))
+				copyFileLogged(path, filepath.Join(manifestsDir, rel), log)
 			}
 			return nil
 		})
@@ -177,7 +196,7 @@ func AssembleManifests(renderRoot, manifestsDir string, config config.ChartSourc
 			subchartDir, relToTemplates, ok := subchartTemplateTarget(chartsDir, path)
 			if ok {
 				dst := filepath.Join(manifestsDir, subchartDir, relToTemplates)
-				copyFile(path, dst)
+				copyFileLogged(path, dst, log)
 			}
 			return nil
 		})
@@ -192,11 +211,11 @@ func AssembleManifests(renderRoot, manifestsDir string, config config.ChartSourc
 				src := filepath.Join(crdsChartDir, entry.Name())
 				dst := filepath.Join(manifestsDir, entry.Name())
 				if entry.IsDir() {
-					if err := copyDir(src, dst); err != nil {
+					if err := copyDir(src, dst, log); err != nil {
 						return err
 					}
 				} else {
-					if err := copyFile(src, dst); err != nil {
+					if err := copyFileLogged(src, dst, log); err != nil {
 						return err
 					}
 				}
@@ -206,28 +225,29 @@ func AssembleManifests(renderRoot, manifestsDir string, config config.ChartSourc
 		crdsSrcDir := filepath.Join(chartsDir, "crds", "templates")
 		if cInfo, err := os.Stat(crdsSrcDir); err == nil && cInfo.IsDir() {
 			filepath.WalkDir(crdsSrcDir, func(path string, d fs.DirEntry, err error) error {
-				if !d.IsDir() && (strings.HasSuffix(path, ".yaml") || strings.HasSuffix(path, ".yml")) {
+				if !d.IsDir() && isYAMLFile(path) {
 					rel, _ := filepath.Rel(crdsSrcDir, path)
-					copyFile(path, filepath.Join(manifestsDir, "crds", rel))
+					copyFileLogged(path, filepath.Join(manifestsDir, "crds", rel), log)
 				}
 				return nil
 			})
 		}
 
-		// Delete CRDs from standard templates that shouldn't be there
-		filepath.WalkDir(manifestsDir, func(path string, d fs.DirEntry, err error) error {
-			if !d.IsDir() && (strings.HasSuffix(path, ".yaml") || strings.HasSuffix(path, ".yml")) {
-				// skip if in crds directory
-				if hasPathSegment(path, "crds") {
-					return nil
+		templatesOutputDir := filepath.Join(manifestsDir, "templates")
+		if tInfo, err := os.Stat(templatesOutputDir); err == nil && tInfo.IsDir() {
+			filepath.WalkDir(templatesOutputDir, func(path string, d fs.DirEntry, err error) error {
+				if !d.IsDir() && isYAMLFile(path) {
+					content, err := os.ReadFile(path)
+					if err == nil && bytes.Contains(content, []byte("apiVersion: apiextensions.k8s.io/")) {
+						if log != nil {
+							log(fmt.Sprintf("remove: %s", path))
+						}
+						os.Remove(path)
+					}
 				}
-				content, err := os.ReadFile(path)
-				if err == nil && bytes.Contains(content, []byte("apiVersion: apiextensions.k8s.io/")) {
-					os.Remove(path)
-				}
-			}
-			return nil
-		})
+				return nil
+			})
+		}
 	}
 
 	// Copy top-level files
@@ -239,9 +259,9 @@ func AssembleManifests(renderRoot, manifestsDir string, config config.ChartSourc
 				src := filepath.Join(renderRoot, name)
 				dst := filepath.Join(manifestsDir, name)
 				if entry.IsDir() {
-					copyDir(src, dst)
+					copyDir(src, dst, log)
 				} else {
-					copyFile(src, dst)
+					copyFileLogged(src, dst, log)
 				}
 			}
 		}
@@ -267,6 +287,18 @@ func AssembleManifests(renderRoot, manifestsDir string, config config.ChartSourc
 		fullPath := pattern
 		if !strings.HasPrefix(pattern, manifestsDir+"/") {
 			fullPath = filepath.Join(manifestsDir, pattern)
+		}
+		if _, err := os.Stat(fullPath); err != nil {
+			if os.IsNotExist(err) {
+				if log != nil {
+					log(fmt.Sprintf("postRender.excludePaths: skip not found: %s", fullPath))
+				}
+				continue
+			}
+			return err
+		}
+		if log != nil {
+			log(fmt.Sprintf("remove: %s", fullPath))
 		}
 		os.RemoveAll(fullPath)
 	}

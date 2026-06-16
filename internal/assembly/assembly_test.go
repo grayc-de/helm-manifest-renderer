@@ -50,6 +50,7 @@ func TestAssembleManifests(t *testing.T) {
 
 	// Check files
 	expectedFiles := []string{
+		"crd-bad.yaml",
 		"crds/gadgets-example-com.yaml",
 		"crds/widgets-example-com.yaml",
 		"deployment.yaml",
@@ -77,9 +78,92 @@ func TestAssembleManifests(t *testing.T) {
 
 	// Check kustomization.yaml content
 	kustContent, _ := os.ReadFile(filepath.Join(manifestsDir, "kustomization.yaml"))
-	expectedKust := "resources:\n  - crds/crd-extra.yaml\n  - crds/crd-good.yaml\n  - crds/gadgets-example-com.yaml\n  - crds/widgets-example-com.yaml\n  - deployment.yaml\n  - secret.yaml\n"
+	expectedKust := "resources:\n  - crds/crd-extra.yaml\n  - crds/crd-good.yaml\n  - crds/gadgets-example-com.yaml\n  - crds/widgets-example-com.yaml\n  - crd-bad.yaml\n  - deployment.yaml\n  - secret.yaml\n"
 	if string(kustContent) != expectedKust {
 		t.Errorf("Kustomization content expected:\n%s\ngot:\n%s", expectedKust, string(kustContent))
+	}
+}
+
+func TestAssembleManifestsCopiesNestedSubchartTemplatesLikeLegacyScript(t *testing.T) {
+	tmpDir := t.TempDir()
+	manifestsDir := filepath.Join(tmpDir, "manifests")
+	renderRoot := filepath.Join(tmpDir, "render", "release")
+
+	nestedTemplatesDir := filepath.Join(renderRoot, "charts", "parent", "charts", "child", "templates", "nested")
+	if err := os.MkdirAll(nestedTemplatesDir, 0755); err != nil {
+		t.Fatalf("failed to create render tree: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(nestedTemplatesDir, "service.yaml"), []byte("apiVersion: v1"), 0644); err != nil {
+		t.Fatalf("failed to write nested subchart yaml: %v", err)
+	}
+
+	if err := AssembleManifests(renderRoot, manifestsDir, config.ChartSourceConfig{}, nil); err != nil {
+		t.Fatalf("AssembleManifests failed: %v", err)
+	}
+
+	expectedPath := filepath.Join(manifestsDir, "child", "nested", "service.yaml")
+	if _, err := os.Stat(expectedPath); err != nil {
+		t.Fatalf("expected nested subchart template at %s: %v", expectedPath, err)
+	}
+
+	kustContent, err := os.ReadFile(filepath.Join(manifestsDir, "kustomization.yaml"))
+	if err != nil {
+		t.Fatalf("failed to read kustomization.yaml: %v", err)
+	}
+	expectedKust := "resources:\n  - child/nested/service.yaml\n"
+	if string(kustContent) != expectedKust {
+		t.Fatalf("Kustomization content expected:\n%s\ngot:\n%s", expectedKust, string(kustContent))
+	}
+}
+
+func TestAssembleManifestsKeepsCRDsFromSubchartTemplates(t *testing.T) {
+	tmpDir := t.TempDir()
+	manifestsDir := filepath.Join(tmpDir, "manifests")
+	renderRoot := filepath.Join(tmpDir, "render", "release")
+
+	templatesDir := filepath.Join(renderRoot, "charts", "generic-controller", "templates")
+	if err := os.MkdirAll(templatesDir, 0755); err != nil {
+		t.Fatalf("failed to create render tree: %v", err)
+	}
+	crd := "apiVersion: apiextensions.k8s.io/v1\nkind: CustomResourceDefinition\nmetadata:\n  name: things.example.io\n"
+	if err := os.WriteFile(filepath.Join(templatesDir, "thing-crd.yaml"), []byte(crd), 0644); err != nil {
+		t.Fatalf("failed to write subchart crd yaml: %v", err)
+	}
+
+	if err := AssembleManifests(renderRoot, manifestsDir, config.ChartSourceConfig{}, nil); err != nil {
+		t.Fatalf("AssembleManifests failed: %v", err)
+	}
+
+	expectedPath := filepath.Join(manifestsDir, "generic-controller", "thing-crd.yaml")
+	if _, err := os.Stat(expectedPath); err != nil {
+		t.Fatalf("expected subchart template CRD to be kept at %s: %v", expectedPath, err)
+	}
+}
+
+func TestAssembleManifestsRemovesCRDsOnlyFromOutputTemplatesDirectory(t *testing.T) {
+	tmpDir := t.TempDir()
+	manifestsDir := filepath.Join(tmpDir, "manifests")
+	renderRoot := filepath.Join(tmpDir, "render", "release")
+
+	templatesDir := filepath.Join(renderRoot, "templates", "templates")
+	if err := os.MkdirAll(templatesDir, 0755); err != nil {
+		t.Fatalf("failed to create render tree: %v", err)
+	}
+	if err := os.MkdirAll(filepath.Join(renderRoot, "charts"), 0755); err != nil {
+		t.Fatalf("failed to create charts directory: %v", err)
+	}
+	crd := "apiVersion: apiextensions.k8s.io/v1\nkind: CustomResourceDefinition\nmetadata:\n  name: nested.example.io\n"
+	if err := os.WriteFile(filepath.Join(templatesDir, "nested-crd.yaml"), []byte(crd), 0644); err != nil {
+		t.Fatalf("failed to write nested template crd yaml: %v", err)
+	}
+
+	if err := AssembleManifests(renderRoot, manifestsDir, config.ChartSourceConfig{}, nil); err != nil {
+		t.Fatalf("AssembleManifests failed: %v", err)
+	}
+
+	removedPath := filepath.Join(manifestsDir, "templates", "nested-crd.yaml")
+	if _, err := os.Stat(removedPath); !os.IsNotExist(err) {
+		t.Fatalf("expected CRD under output templates directory to be removed, stat error: %v", err)
 	}
 }
 
@@ -205,6 +289,53 @@ func TestAssembleManifestsAppliesExcludePathsAfterMovePaths(t *testing.T) {
 	expectedKust := "resources:\n  - group-a/alpha.yaml\n"
 	if string(kustContent) != expectedKust {
 		t.Fatalf("Kustomization content expected:\n%s\ngot:\n%s", expectedKust, string(kustContent))
+	}
+}
+
+func TestAssembleManifestsLogsFileOperations(t *testing.T) {
+	tmpDir := t.TempDir()
+	manifestsDir := filepath.Join(tmpDir, "manifests")
+	renderRoot := filepath.Join(tmpDir, "render", "release")
+
+	if err := os.MkdirAll(filepath.Join(renderRoot, "templates"), 0755); err != nil {
+		t.Fatalf("failed to create render tree: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(renderRoot, "templates", "alpha.yaml"), []byte("apiVersion: v1"), 0644); err != nil {
+		t.Fatalf("failed to write alpha.yaml: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(renderRoot, "templates", "beta.yaml"), []byte("apiVersion: v1"), 0644); err != nil {
+		t.Fatalf("failed to write beta.yaml: %v", err)
+	}
+
+	cfg := config.ChartSourceConfig{
+		PostRender: config.PostRenderConfig{
+			MovePaths: []config.MovePathRule{
+				{From: "alpha.yaml", To: "group-a"},
+			},
+			ExcludePaths: []string{
+				"group-a/alpha.yaml",
+				"missing.yaml",
+			},
+		},
+	}
+
+	var logs []string
+	if err := AssembleManifests(renderRoot, manifestsDir, cfg, func(message string) {
+		logs = append(logs, message)
+	}); err != nil {
+		t.Fatalf("AssembleManifests failed: %v", err)
+	}
+
+	logged := strings.Join(logs, "\n")
+	for _, expected := range []string{
+		"copy: " + filepath.Join(renderRoot, "templates", "alpha.yaml") + " -> " + filepath.Join(manifestsDir, "alpha.yaml"),
+		"move: " + filepath.Join(manifestsDir, "alpha.yaml") + " -> " + filepath.Join(manifestsDir, "group-a", "alpha.yaml"),
+		"remove: " + filepath.Join(manifestsDir, "group-a", "alpha.yaml"),
+		"postRender.excludePaths: skip not found: " + filepath.Join(manifestsDir, "missing.yaml"),
+	} {
+		if !strings.Contains(logged, expected) {
+			t.Fatalf("expected log entry %q in:\n%s", expected, logged)
+		}
 	}
 }
 

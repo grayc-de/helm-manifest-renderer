@@ -143,8 +143,8 @@ Example:
 If no values file is found and `--values-file` is not set, the renderer prints a
 notice and continues with the chart defaults.
 
-Use `--stage-log` if you want detailed progress output for each renderer stage
-and active post-render step.
+Use `--stage-log` if you want detailed progress output for each renderer stage,
+active post-render step, and file operation such as copies, moves, and removals.
 
 ## Examples
 

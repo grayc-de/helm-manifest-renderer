@@ -60,5 +60,5 @@ steps:
         VERSION: ${CI_COMMIT_TAG}
       auth:
         index.docker.io:
-          username: { from_secret: docker_io_username }
-          password: { from_secret: docker_io_password }
+          username: {from_secret: docker_io_username}
+          password: {from_secret: docker_io_password}

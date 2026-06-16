@@ -28,3 +28,7 @@ steps:
     settings:
       platform: linux/amd64
       name: docker.io/graycgmbh/helm-manifest-renderer:latest
+      auth:
+        index.docker.io:
+          username: { from_secret: docker_io_username }
+          password: { from_secret: docker_io_password }

@@ -29,6 +29,6 @@ steps:
       platform: linux/amd64
       name: docker.io/graycgmbh/helm-manifest-renderer:latest
       auth:
-        registry-1.docker.io:
+        "https://index.docker.io/v1/":
           username: {from_secret: DOCKERHUB_USERNAME}
           password: {from_secret: DOCKERHUB_TOKEN}

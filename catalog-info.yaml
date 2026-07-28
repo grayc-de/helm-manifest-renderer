@@ -1,0 +1,30 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: helm-manifest-renderer
+  namespace: grayc
+  title: Helm Manifest Renderer
+  description: |
+    Single-binary Go CLI that renders a Helm chart into a deterministic,
+    committable manifest directory via `helm template`, shaped to match the
+    GitOps `generated-manifests/` convention used across the GrayC clusters. It
+    shells out to `helm`, so the container image bundles a pinned Helm version.
+
+    Consumed as a base image by the `helm-manifest-pr-sync` Woodpecker plugin,
+    which is what re-renders `generated-manifests/` inside a Renovate pull
+    request in `continuous-delivery` and `cluster-provisioning`.
+  links:
+    - title: Public image on Docker Hub
+      url: https://hub.docker.com/r/graycgmbh/helm-manifest-renderer
+    - title: Helm template
+      url: https://helm.sh/docs/helm/helm_template/
+  tags: [docker, go, helm, kustomize, gitops, cli]
+  annotations:
+    gitea.com/repo-slug: grayc-devops/helm-manifest-renderer
+    backstage.io/source-location: url:https://git.grayc.dev/grayc-devops/helm-manifest-renderer/src/branch/main/
+    backstage.io/techdocs-entity: system:grayc/continuous-delivery
+spec:
+  type: docker-image
+  lifecycle: production
+  owner: default/grayc
+  system: grayc/continuous-delivery

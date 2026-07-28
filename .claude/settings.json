@@ -1,0 +1,10 @@
+{
+  "extraKnownMarketplaces": {
+    "grayc-skills": {
+      "source": {
+        "source": "git",
+        "url": "https://git.grayc.dev/grayc/grayc-skills.git"
+      }
+    }
+  }
+}

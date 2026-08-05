@@ -22,4 +22,4 @@ steps:
   # Check-only on purpose — fixing is a local `just lint-fix` affair; CI must
   # report, not rewrite a branch it is not pushing.
   lint:
-    image: git.grayc.dev/grayc-devops/woodpecker-lint:v0.2.0
+    image: git.grayc.dev/grayc-devops/woodpecker-lint:v0.3.0

@@ -11,9 +11,11 @@ build:
 # Lint files
 lint:
     make fmt
-    just --unstable --fmt --check --color=always --justfile=.justfile
-    yamllint --format=colored --strict .
-    markdownlint-cli2 --fix "**/*.md"
+    docker run --rm --volume=$PWD:$PWD:ro --workdir=$PWD git.grayc.dev/grayc-devops/woodpecker-lint:v0.2.0
+
+# Lint files, fixing whatever the linters can fix in place.
+lint-fix:
+    docker run --rm --user=$(id -u):$(id -g) --volume=$PWD:$PWD --workdir=$PWD git.grayc.dev/grayc-devops/woodpecker-lint:v0.2.0 --fix
 
 # Test the helm renderer
 test:

@@ -6,11 +6,10 @@ when:
       - manual
 
 steps:
-  fmt:
-    image: golang:1.26
-    commands:
-      - make fmt-check
-
+  # `fmt` (make fmt-check) used to run here. woodpecker-lint v0.4.0 bundles a
+  # gofmt detector with identical semantics — `test -z "$(gofmt -l .)"` — so it
+  # moved to .woodpecker/lint.yaml. The Makefile target stays for local use;
+  # vet/test/build still need the Go toolchain, so this pipeline remains.
   vet:
     image: golang:1.26
     commands:

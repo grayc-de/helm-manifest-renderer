@@ -2,6 +2,9 @@ when:
   event:
     - manual
     - pull_request
+    # `push` matters now that gofmt runs here rather than in go.yaml, which
+    # does run on push: without it a merge to main would land unchecked.
+    - push
   branch: main
   path:
     - .woodpecker/lint.yaml
@@ -13,13 +16,15 @@ when:
     - "**/*.md"
     - "**/*.y*ml"
     - "**/*.sh"
+    - "**/*.go"
 
 steps:
 
   # Single auto-detecting lint step: runs yamllint, markdownlint, hadolint,
-  # shellcheck, just, renovate-config-validator, backstage-entity-validator
-  # and woodpecker-cli over the workspace, whichever file types are present.
-  # Check-only on purpose — fixing is a local `just lint-fix` affair; CI must
-  # report, not rewrite a branch it is not pushing.
+  # shellcheck, just, gofmt, tofu, renovate-config-validator,
+  # backstage-entity-validator and woodpecker-cli over the workspace,
+  # whichever file types are present. Check-only on purpose — fixing is a
+  # local `just lint-fix` affair; CI must report, not rewrite a branch it is
+  # not pushing.
   lint:
-    image: git.grayc.dev/grayc-devops/woodpecker-lint:v0.3.0
+    image: git.grayc.dev/grayc-devops/woodpecker-lint:v0.4.0

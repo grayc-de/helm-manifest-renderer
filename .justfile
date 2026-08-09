@@ -8,14 +8,13 @@ default:
 build:
     make build
 
-# Lint files
+# Lint files (check-only; use lint-fix to rewrite)
 lint:
-    make fmt
-    docker run --rm --volume=$PWD:$PWD:ro --workdir=$PWD git.grayc.dev/grayc-devops/woodpecker-lint:v0.2.0
+    docker run --rm --volume=$PWD:$PWD:ro --workdir=$PWD git.grayc.dev/grayc-devops/woodpecker-lint:v0.4.0
 
 # Lint files, fixing whatever the linters can fix in place.
 lint-fix:
-    docker run --rm --user=$(id -u):$(id -g) --volume=$PWD:$PWD --workdir=$PWD git.grayc.dev/grayc-devops/woodpecker-lint:v0.2.0 --fix
+    docker run --rm --user=$(id -u):$(id -g) --volume=$PWD:$PWD --workdir=$PWD git.grayc.dev/grayc-devops/woodpecker-lint:v0.4.0 --fix
 
 # Test the helm renderer
 test:

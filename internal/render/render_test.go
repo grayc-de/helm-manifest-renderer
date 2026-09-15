@@ -2,10 +2,14 @@ package render
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
+
+	"git.grayc.dev/grayc-devops/helm-manifest-renderer/internal/config"
 )
 
 func TestShouldSkipStructuredCleanup(t *testing.T) {
@@ -70,5 +74,66 @@ func TestStage(t *testing.T) {
 	}
 	if !strings.Contains(logged, "[stage] enabled") {
 		t.Fatalf("expected enabled stage log, got: %q", logged)
+	}
+}
+
+func TestMaterializeSourceFetchesURLSources(t *testing.T) {
+	original := fetchAsset
+	defer func() { fetchAsset = original }()
+
+	var gotSrc config.URLSource
+	var gotDest string
+	fetchAsset = func(src config.URLSource, destDir string) error {
+		gotSrc = src
+		gotDest = destDir
+		return nil
+	}
+
+	cfg := config.ChartSourceConfig{
+		SourceType: "url",
+		Source: config.SourceConfig{
+			URL: &config.URLSource{
+				Repo:    "kubernetes-sigs/cluster-api",
+				Version: "v1.12.7",
+				Asset:   "cluster-api-components.yaml",
+			},
+		},
+	}
+
+	tempDir := t.TempDir()
+	if err := materializeSource(cfg, tempDir, "", nil); err != nil {
+		t.Fatalf("materializeSource() error = %v", err)
+	}
+
+	if gotSrc.Repo != "kubernetes-sigs/cluster-api" {
+		t.Errorf("fetched the wrong source: %+v", gotSrc)
+	}
+	want := filepath.Join(tempDir, "cluster-api")
+	if gotDest != want {
+		t.Errorf("dest = %s, want %s", gotDest, want)
+	}
+}
+
+func TestMaterializeSourceReportsFetchFailure(t *testing.T) {
+	original := fetchAsset
+	defer func() { fetchAsset = original }()
+
+	fetchAsset = func(src config.URLSource, destDir string) error {
+		return fmt.Errorf("status 404 (Not Found)")
+	}
+
+	cfg := config.ChartSourceConfig{
+		SourceType: "url",
+		Source: config.SourceConfig{
+			URL: &config.URLSource{Repo: "o/r", Version: "v1", Asset: "a.yaml"},
+		},
+	}
+
+	err := materializeSource(cfg, t.TempDir(), "", nil)
+	if err == nil {
+		t.Fatal("materializeSource() error = nil, want the fetch failure")
+	}
+	if !strings.Contains(err.Error(), "404") {
+		t.Errorf("error lost the cause: %v", err)
 	}
 }

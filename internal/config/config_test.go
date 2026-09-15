@@ -160,6 +160,127 @@ source:
     chartPath: ./local`,
 			wantErr: true,
 		},
+		{
+			name: "url source config",
+			content: `sourceType: url
+
+source:
+  url:
+    repo: kubernetes-sigs/cluster-api
+    version: v1.12.7
+    asset: cluster-api-components.yaml
+
+postRender:
+  splitYamlDocumentsInPaths:
+    - cluster-api-components.yaml`,
+			expected: ChartSourceConfig{
+				SourceType: "url",
+				Source: SourceConfig{
+					URL: &URLSource{
+						Repo:    "kubernetes-sigs/cluster-api",
+						Version: "v1.12.7",
+						Asset:   "cluster-api-components.yaml",
+					},
+				},
+				HelmArgs: []string{},
+				PostRender: PostRenderConfig{
+					DeleteYamlPaths:           []string{},
+					ExcludePaths:              []string{},
+					SplitYamlDocumentsInPaths: []string{"cluster-api-components.yaml"},
+					MovePaths:                 []MovePathRule{},
+					NormalizeMetadata:         boolPtr(true),
+				},
+			},
+		},
+		{
+			name: "url source requires repo",
+			content: `sourceType: url
+
+source:
+  url:
+    version: v1.12.7
+    asset: components.yaml`,
+			wantErr: true,
+		},
+		{
+			name: "url source requires version",
+			content: `sourceType: url
+
+source:
+  url:
+    repo: owner/repo
+    asset: components.yaml`,
+			wantErr: true,
+		},
+		{
+			name: "url source requires asset",
+			content: `sourceType: url
+
+source:
+  url:
+    repo: owner/repo
+    version: v1.0.0`,
+			wantErr: true,
+		},
+		{
+			name: "url source rejects inactive source sections",
+			content: `sourceType: url
+
+source:
+  url:
+    repo: owner/repo
+    version: v1.0.0
+    asset: components.yaml
+  helm:
+    repoUrl: https://example.com/charts
+    name: app
+    version: 1.2.3`,
+			wantErr: true,
+		},
+		{
+			name: "url source rejects releaseName and namespace",
+			content: `sourceType: url
+releaseName: cluster-api
+namespace: capi-system
+
+source:
+  url:
+    repo: owner/repo
+    version: v1.0.0
+    asset: components.yaml`,
+			wantErr: true,
+		},
+		{
+			name: "url source rejects helmArgs",
+			content: `sourceType: url
+
+source:
+  url:
+    repo: owner/repo
+    version: v1.0.0
+    asset: components.yaml
+
+helmArgs:
+  - --no-hooks`,
+			wantErr: true,
+		},
+		{
+			name: "helm source rejects an inactive url section",
+			content: `sourceType: helm
+releaseName: test
+namespace: default
+
+source:
+  helm:
+    repoUrl: https://example.com/charts
+    name: app
+    version: 1.2.3
+  url:
+    repo: owner/repo
+    version: v1.0.0
+    asset: components.yaml`,
+			wantErr: true,
+		},
 	}
 
 	for _, tt := range tests {

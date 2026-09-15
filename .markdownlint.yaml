@@ -7,3 +7,8 @@ MD009:
 
 # MD013 - Line length
 MD013: false
+
+# MD010 - Hard tabs. Go is tab-indented by gofmt, so any Go snippet in the
+# docs (specs, plans, README) carries real tabs. Prose is still checked.
+MD010:
+  code_blocks: false

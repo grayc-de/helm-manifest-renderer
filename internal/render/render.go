@@ -5,14 +5,67 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"path"
 	"path/filepath"
 	"strings"
 
 	"git.grayc.dev/grayc-devops/helm-manifest-renderer/internal/assembly"
 	"git.grayc.dev/grayc-devops/helm-manifest-renderer/internal/config"
+	"git.grayc.dev/grayc-devops/helm-manifest-renderer/internal/fetch"
 	"git.grayc.dev/grayc-devops/helm-manifest-renderer/internal/helm"
 	"git.grayc.dev/grayc-devops/helm-manifest-renderer/internal/yamlcleaner"
 )
+
+// fetchAsset is a variable so tests can stub the download.
+var fetchAsset = fetch.Fetch
+
+// materializeSource puts the unrendered source into tempDir: helm output for
+// chart sources, the downloaded release asset for sourceType=url. Downstream
+// stages only see a directory of YAML and do not care which it was.
+func materializeSource(cfg config.ChartSourceConfig, tempDir string, valuesFile string, stageLog func(string)) error {
+	logStage := func(message string) {
+		if stageLog != nil {
+			stageLog(message)
+		}
+	}
+
+	if cfg.SourceType == "url" {
+		src := *cfg.Source.URL
+		dest := filepath.Join(tempDir, path.Base(src.Repo))
+		logStage(fmt.Sprintf("Fetch release asset: %s", fetch.AssetURL(fetch.DefaultBaseURL, src)))
+		return fetchAsset(src, dest)
+	}
+
+	cmds, err := helm.GenerateHelmCommands(cfg, tempDir, valuesFile)
+	if err != nil {
+		return fmt.Errorf("failed to generate helm command: %v", err)
+	}
+	logStage(fmt.Sprintf("Render chart with %d helm command(s)", len(cmds)))
+
+	for _, c := range cmds {
+		logStage(fmt.Sprintf("Run command: %v", c))
+		cmd := exec.Command(c[0], c[1:]...)
+		if len(c) >= 3 && c[0] == "helm" && c[1] == "repo" && (c[2] == "add" || c[2] == "update") {
+			cmd.Stdout = io.Discard
+			cmd.Stderr = io.Discard
+		} else if len(c) >= 2 && c[0] == "helm" && c[1] == "template" {
+			cmd.Stdout = io.Discard
+			cmd.Stderr = os.Stderr
+		} else {
+			cmd.Stdout = os.Stdout
+			cmd.Stderr = os.Stderr
+		}
+		err := cmd.Run()
+		if err != nil && len(c) >= 3 && c[0] == "helm" && c[1] == "repo" && (c[2] == "add" || c[2] == "update") {
+			warn(fmt.Sprintf("helm repo command failed (ignoring): %v", err))
+			continue
+		} else if err != nil {
+			return fmt.Errorf("helm command failed: %v", err)
+		}
+	}
+
+	return nil
+}
 
 const (
 	DefaultConfigFile = "chart-source.yaml"
@@ -93,16 +146,25 @@ func RunRenderWithOptions(opts Options) error {
 	if err != nil {
 		return fmt.Errorf("failed to parse config: %v", err)
 	}
-	stage(opts.StageLog, fmt.Sprintf("Parsed config: sourceType=%s releaseName=%s namespace=%s", cfg.SourceType, cfg.ReleaseName, cfg.Namespace))
-
-	valuesFile, err := resolveValuesFile(opts.ValuesFile)
-	if err != nil {
-		return err
-	}
-	if valuesFile == "" {
-		info("No values file found. Rendering chart with the default values from the Helm chart.")
+	if cfg.SourceType == "url" {
+		stage(opts.StageLog, fmt.Sprintf("Parsed config: sourceType=%s repo=%s version=%s asset=%s",
+			cfg.SourceType, cfg.Source.URL.Repo, cfg.Source.URL.Version, cfg.Source.URL.Asset))
 	} else {
-		stage(opts.StageLog, fmt.Sprintf("Use values file: %s", valuesFile))
+		stage(opts.StageLog, fmt.Sprintf("Parsed config: sourceType=%s releaseName=%s namespace=%s",
+			cfg.SourceType, cfg.ReleaseName, cfg.Namespace))
+	}
+
+	valuesFile := ""
+	if cfg.SourceType != "url" {
+		valuesFile, err = resolveValuesFile(opts.ValuesFile)
+		if err != nil {
+			return err
+		}
+		if valuesFile == "" {
+			info("No values file found. Rendering chart with the default values from the Helm chart.")
+		} else {
+			stage(opts.StageLog, fmt.Sprintf("Use values file: %s", valuesFile))
+		}
 	}
 
 	os.RemoveAll(tempDir)
@@ -110,32 +172,10 @@ func RunRenderWithOptions(opts Options) error {
 	defer os.RemoveAll(tempDir)
 	stage(opts.StageLog, fmt.Sprintf("Prepare temp dir: %s", tempDir))
 
-	cmds, err := helm.GenerateHelmCommands(cfg, tempDir, valuesFile)
-	if err != nil {
-		return fmt.Errorf("failed to generate helm command: %v", err)
-	}
-	stage(opts.StageLog, fmt.Sprintf("Render chart with %d helm command(s)", len(cmds)))
-
-	for _, c := range cmds {
-		stage(opts.StageLog, fmt.Sprintf("Run command: %v", c))
-		cmd := exec.Command(c[0], c[1:]...)
-		if len(c) >= 3 && c[0] == "helm" && c[1] == "repo" && (c[2] == "add" || c[2] == "update") {
-			cmd.Stdout = io.Discard
-			cmd.Stderr = io.Discard
-		} else if len(c) >= 2 && c[0] == "helm" && c[1] == "template" {
-			cmd.Stdout = io.Discard
-			cmd.Stderr = os.Stderr
-		} else {
-			cmd.Stdout = os.Stdout
-			cmd.Stderr = os.Stderr
-		}
-		err := cmd.Run()
-		if err != nil && len(c) >= 3 && c[0] == "helm" && c[1] == "repo" && (c[2] == "add" || c[2] == "update") {
-			warn(fmt.Sprintf("helm repo command failed (ignoring): %v", err))
-			continue
-		} else if err != nil {
-			return fmt.Errorf("helm command failed: %v", err)
-		}
+	if err := materializeSource(cfg, tempDir, valuesFile, func(message string) {
+		stage(opts.StageLog, message)
+	}); err != nil {
+		return err
 	}
 
 	entries, err := os.ReadDir(tempDir)

@@ -57,7 +57,7 @@ package owns one stage:
 
 1. **`config`** — parses & validates `chart-source.yaml`. Uses
    `decoder.KnownFields(true)` so unknown keys are hard errors. Exactly one of
-   `source.{local,helm,oci}` must be present and must match `sourceType`;
+   `source.{local,helm,oci,url}` must be present and must match `sourceType`;
    `normalizeMetadata` defaults to `true` (note: it is a `*bool` so "unset" is
    distinguishable from explicit `false`).
 2. **`helm`** — `GenerateHelmCommands` turns the config into the argv for
@@ -67,6 +67,10 @@ package owns one stage:
 3. **render execution** — `render.go` runs each command, discarding noisy
    `helm repo` output and tolerating `helm repo add/update` failures (warn &
    continue), then locates the single rendered chart dir under `tmp/`.
+   The materialise stage is source-dependent: `internal/helm` builds and runs
+   the `helm template` commands for `local`/`helm`/`oci`, `internal/fetch`
+   downloads the release asset for `url`. Everything after it —
+   `internal/yamlcleaner`, `internal/assembly` — is identical for both.
 4. **`yamlcleaner`** — *structured* (yaml.v3 AST) cleanup applied per-file to
    the raw render: deletes configured `deleteYamlPaths`, strips Helm-noise
    labels/annotations, prunes empty `metadata`/`status`/etc. CRD files under

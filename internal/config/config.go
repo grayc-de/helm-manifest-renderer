@@ -40,10 +40,17 @@ type OCISource struct {
 	Version  string `yaml:"version"`
 }
 
+type URLSource struct {
+	Repo    string `yaml:"repo"`
+	Version string `yaml:"version"`
+	Asset   string `yaml:"asset"`
+}
+
 type SourceConfig struct {
 	Local *LocalSource `yaml:"local"`
 	Helm  *HelmSource  `yaml:"helm"`
 	OCI   *OCISource   `yaml:"oci"`
+	URL   *URLSource   `yaml:"url"`
 }
 
 type ChartSourceConfig struct {
@@ -76,7 +83,7 @@ func ParseChartConfig(content []byte) (ChartSourceConfig, error) {
 		if strings.TrimSpace(c.Source.Local.ChartPath) == "" {
 			return ChartSourceConfig{}, fmt.Errorf("source.local.chartPath must be set")
 		}
-		if c.Source.Helm != nil || c.Source.OCI != nil {
+		if c.Source.Helm != nil || c.Source.OCI != nil || c.Source.URL != nil {
 			return ChartSourceConfig{}, fmt.Errorf("source contains inactive sections for sourceType=local")
 		}
 	case "helm":
@@ -95,7 +102,7 @@ func ParseChartConfig(content []byte) (ChartSourceConfig, error) {
 		if strings.TrimSpace(c.Source.Helm.RepoName) == "" {
 			c.Source.Helm.RepoName = "helmrepo"
 		}
-		if c.Source.Local != nil || c.Source.OCI != nil {
+		if c.Source.Local != nil || c.Source.OCI != nil || c.Source.URL != nil {
 			return ChartSourceConfig{}, fmt.Errorf("source contains inactive sections for sourceType=helm")
 		}
 	case "oci":
@@ -114,18 +121,42 @@ func ParseChartConfig(content []byte) (ChartSourceConfig, error) {
 		if strings.TrimSpace(c.Source.OCI.Version) == "" {
 			return ChartSourceConfig{}, fmt.Errorf("source.oci.version must be set")
 		}
-		if c.Source.Local != nil || c.Source.Helm != nil {
+		if c.Source.Local != nil || c.Source.Helm != nil || c.Source.URL != nil {
 			return ChartSourceConfig{}, fmt.Errorf("source contains inactive sections for sourceType=oci")
 		}
+	case "url":
+		if c.Source.URL == nil {
+			return ChartSourceConfig{}, fmt.Errorf("source.url must be set for sourceType=url")
+		}
+		if strings.TrimSpace(c.Source.URL.Repo) == "" {
+			return ChartSourceConfig{}, fmt.Errorf("source.url.repo must be set")
+		}
+		if strings.TrimSpace(c.Source.URL.Version) == "" {
+			return ChartSourceConfig{}, fmt.Errorf("source.url.version must be set")
+		}
+		if strings.TrimSpace(c.Source.URL.Asset) == "" {
+			return ChartSourceConfig{}, fmt.Errorf("source.url.asset must be set")
+		}
+		if c.Source.Local != nil || c.Source.Helm != nil || c.Source.OCI != nil {
+			return ChartSourceConfig{}, fmt.Errorf("source contains inactive sections for sourceType=url")
+		}
+		if strings.TrimSpace(c.ReleaseName) != "" || strings.TrimSpace(c.Namespace) != "" {
+			return ChartSourceConfig{}, fmt.Errorf("releaseName and namespace are Helm concepts and must not be set for sourceType=url")
+		}
+		if len(c.HelmArgs) > 0 {
+			return ChartSourceConfig{}, fmt.Errorf("helmArgs must not be set for sourceType=url")
+		}
 	default:
-		return ChartSourceConfig{}, fmt.Errorf("sourceType must be one of: local, helm, oci")
+		return ChartSourceConfig{}, fmt.Errorf("sourceType must be one of: local, helm, oci, url")
 	}
 
-	if strings.TrimSpace(c.ReleaseName) == "" {
-		return ChartSourceConfig{}, fmt.Errorf("releaseName must be set")
-	}
-	if strings.TrimSpace(c.Namespace) == "" {
-		return ChartSourceConfig{}, fmt.Errorf("namespace must be set")
+	if c.SourceType != "url" {
+		if strings.TrimSpace(c.ReleaseName) == "" {
+			return ChartSourceConfig{}, fmt.Errorf("releaseName must be set")
+		}
+		if strings.TrimSpace(c.Namespace) == "" {
+			return ChartSourceConfig{}, fmt.Errorf("namespace must be set")
+		}
 	}
 
 	if c.HelmArgs == nil {

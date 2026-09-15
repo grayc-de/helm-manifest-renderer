@@ -212,7 +212,7 @@ postRender:
 `sourceType`
 
 - selects how the chart is resolved
-- supported values: `local`, `helm`, `oci`
+- supported values: `local`, `helm`, `oci`, `url`
 
 `releaseName`
 
@@ -316,6 +316,31 @@ source:
 
 - required
 - chart version passed to Helm
+
+### `sourceType: url`
+
+Vendors a released manifest file instead of rendering a chart. No Helm is
+involved: `releaseName`, `namespace` and `helmArgs` are rejected. A values
+file is ignored, not rejected, because no templating happens.
+
+```yaml
+sourceType: url
+
+source:
+  url:
+    repo: kubernetes-sigs/cluster-api
+    version: v1.12.7
+    asset: cluster-api-components.yaml
+
+postRender:
+  splitYamlDocumentsInPaths:
+    - cluster-api-components.yaml
+```
+
+The asset is downloaded from
+`https://github.com/<repo>/releases/download/<version>/<asset>`. GitHub
+releases are the only supported host. Any non-2xx response fails the render
+with the status code — there is no fallback.
 
 Post-render options are described below.
 

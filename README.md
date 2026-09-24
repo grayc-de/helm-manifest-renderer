@@ -17,6 +17,16 @@ By default, manifests are written to `generated-manifests`.
 
 ## Prerequisites
 
+Install the toolchain pinned in [`.tool-versions`](.tool-versions) with
+[asdf](https://asdf-vm.com/):
+
+```shell
+just asdf
+```
+
+Re-run it whenever a `.tool-versions` bump lands, or `just` fails with
+`No version is set for command <tool>`.
+
 Local execution requires:
 
 - Go 1.26 or newer to build the binary

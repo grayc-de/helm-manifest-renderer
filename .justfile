@@ -4,6 +4,10 @@
 default:
     just --list --unsorted
 
+# Install the toolchain pinned in .tool-versions
+asdf:
+    asdf install
+
 # Build the binary (delegates to make for version ldflags)
 build:
     make build

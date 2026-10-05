@@ -1,0 +1,12 @@
+# Installs every pin in .tool-versions. Without this pipeline a pull request
+# that only bumps a pin -- which is what Renovate opens -- matched no path
+# filter, carried no CI status and could not be merged by a non-admin.
+# See tool-versions/README.md in woodpecker-plugins.
+when:
+  event: [manual, push, pull_request]
+  path: [.woodpecker/tool-versions.yaml, .tool-versions]
+  branch: main
+
+steps:
+  tool-versions:
+    image: git.grayc.dev/grayc-devops/woodpecker-tool-versions:v0.1.0

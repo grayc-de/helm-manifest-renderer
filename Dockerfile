@@ -12,9 +12,12 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
   -ldflags "-X git.grayc.dev/grayc-devops/helm-manifest-renderer/internal/buildinfo.Version=${VERSION}" \
   -o /out/helm-manifest-renderer ./cmd/helm-manifest-renderer
 
-FROM debian:bookworm-slim
+FROM debian:trixie-slim
 
-ARG HELM_VERSION=v3.19.0
+# Helm 4 is a major release with its own changes to `helm template` output; stay
+# on 3.x until the rendered manifests have been compared.
+# renovate: datasource=github-releases packageName=helm/helm versioning=semver
+ENV HELM_VERSION=v3.22.1
 
 # hadolint ignore=DL3008
 RUN apt-get update \
